@@ -113,6 +113,16 @@ src/
 - Máy này: git user đặt cục bộ trong repo (`hoanganhkiet14021996`). Không có `gh` CLI; tạo repo/Variables/Pages làm trên web. Push dùng Git Credential Manager đã đăng nhập.
 - App không dùng router (tab lưu trong `#hash`) → không cần trick 404.html cho SPA. PWA `autoUpdate`: bản mới chỉ hiện sau khi tắt hẳn rồi mở lại app 1–2 lần.
 
+## Quy trình làm việc & việc để lần sau
+
+- Làm **local trước** (`npm run dev`, localhost:5173, dùng `.env` nên vẫn nối Supabase thật — dùng tài khoản test để khỏi lẫn dữ liệu). Chỉ deploy khi người dùng nói "deploy": `npm run check` → commit → `git push` → Actions tự deploy. Không sửa file trực tiếp trên web GitHub (local sẽ lệch repo).
+- Đăng nhập hiện **không bắt buộc**: không có trang đăng nhập riêng. Có 2 chỗ: màn chào `Onboarding.tsx` ("Đã dùng trên máy khác? Đăng nhập…", chỉ hiện khi máy chưa có dữ liệu, `onboarded=false`) và thẻ tài khoản `AccountCard.tsx` ở tab Mục tiêu. Muốn thấy lại màn chào khi test: xoá dữ liệu site (DevTools → Application → Clear site data) hoặc cửa sổ ẩn danh.
+- **Việc để lần sau** (chưa làm, cần người dùng xác nhận trước khi đổi hành vi):
+  1. Trang đăng nhập riêng, bắt buộc đăng nhập mới vào app (giống app CFO).
+  2. Xoá tài khoản test `nam@calitrack.app` trong Supabase (cẩn thận dữ liệu `fin_*` của app CFO) và đổi app CFO sang domain `@namnguyen27.app`.
+  3. Thử tay thêm/xoá món, bữa mẫu trên bản live + điện thoại thật; cài PWA; thử AI với Gemini key thật.
+  4. Thêm URL Pages `https://hoanganhkiet14021996.github.io/NomNam/**` vào Supabase Redirect URLs (nếu chưa).
+
 ## Tài liệu
 
 - `docs/checklist.md` — checklist tính năng & trạng thái (cập nhật khi làm xong tính năng).
