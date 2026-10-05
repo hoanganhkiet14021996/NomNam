@@ -5,7 +5,7 @@
 | Nhóm | Tính năng | v0.1 | v0.2 |
 |---|---|:-:|:-:|
 | **Nền tảng** | Build pass, lint 0 cảnh báo, type-check sạch | ❌ | ✅ |
-| | Unit test cho công thức (BMR, macro, MET, ngày, tìm kiếm, DB món) | ❌ | ✅ 26 test |
+| | Unit test cho công thức (BMR, macro, MET, ngày, tìm kiếm, DB món) | ❌ | ✅ 48 test (gồm store: thêm/xoá/Hoàn tác, sync merge) |
 | | Lưu dữ liệu bền vững (F5 không mất) | ❌ | ✅ IndexedDB |
 | | Đồng bộ điện thoại ↔ máy tính | ❌ | ✅ Supabase (cần cấu hình .env + chạy SQL) |
 | | Offline vẫn log, tự đồng bộ khi có mạng | ❌ | ✅ outbox |

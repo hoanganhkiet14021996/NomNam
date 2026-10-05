@@ -1,5 +1,12 @@
 # Nhật Ký Thay Đổi (Changelog) - NomNam
 
+## [V0.2.4] - 2026-10-06
+### Thêm (Added)
+- Deploy GitHub Pages: `.github/workflows/deploy.yml` (lint → test → build → deploy), `base` theo `VITE_BASE`, manifest/service worker/logo theo base.
+- `src/store/store.test.ts` (17 test): thêm/xoá/Hoàn tác món, vận động, cân nặng, bữa mẫu, món riêng, copy ngày, tổng kết ngày, merge sync, kiểm tra dữ liệu món. Lệnh `npm run check` (tsc + lint + test).
+### Thay đổi (Changed)
+- Email ảo của đăng nhập tên + PIN đổi từ `@calitrack.app` sang `@namnguyen27.app` (tài khoản cũ không đăng nhập được, phải tạo lại).
+
 ## [V0.2.3] - 2026-10-05
 ### Thay đổi (Changed)
 - Dùng logo NomNam (`logoNomNam.svg`, giữ nguyên thiết kế gốc) làm favicon, icon PWA (192/512, maskable cho Android, apple-touch-icon cho iPhone) và logo màn chào.

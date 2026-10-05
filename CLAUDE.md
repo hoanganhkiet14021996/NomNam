@@ -11,9 +11,10 @@ npm run dev       # Vite dev server (http://localhost:5173)
 npm run build     # tsc -b && vite build (+ service worker PWA)
 npm run lint      # oxlint — phải sạch 0 cảnh báo
 npm test          # vitest run (src/**/*.test.ts)
+npm run check     # tsc -b + oxlint + vitest — chạy cái này trước mỗi lần push/deploy
 ```
 
-Chạy `npx tsc -b && npm run lint && npm test` trước khi báo xong việc.
+Chạy `npm run check` (= tsc + lint + test) trước khi báo xong việc / trước khi push. Workflow deploy cũng chạy lint + test: **test hỏng → không deploy**.
 
 ## Stack
 
@@ -40,6 +41,7 @@ src/
   store/settings.ts        theme, Gemini key/model (localStorage, KHÔNG sync)
   store/ui.ts              tab (sync với #hash), ngày đang xem, trạng thái sheet
   store/derive.ts          selector thuần: logsForDate, summarizeDay, recent/frequent, weightTrend, MEALS
+  store/store.test.ts      test bug cơ bản: thêm/xoá/Hoàn tác món, vận động, cân, bữa mẫu, copy ngày, tổng kết, merge sync, dữ liệu món (idb-keyval được mock)
   store/hooks.ts           useDay(date), useTargets(), useAllFoods()
   components/              CalorieRing, MacroBar, NumberField, AnimatedNumber, BottomNav, PageHeader, DayNav
   components/ui/           button, card, input, drawer (vaul), switch, segmented
@@ -92,29 +94,24 @@ src/
 
 - Tên hiển thị: **NomNam**. Các khoá nội bộ vẫn mang tên cũ `calitrack` **có chủ ý**: IndexedDB `calitrack-data`, localStorage `calitrack-settings` / `calitrack-theme`, email ảo `@namnguyen27.app` (đã đổi từ `@calitrack.app` ngày 2026-10-05). Không đổi các khoá này (mất dữ liệu / hỏng tài khoản).
 
-## Trạng thái hiện tại (2026-10-05, v0.2.3)
+## Trạng thái hiện tại (2026-10-06, v0.2.3)
 
 - Đã xong & kiểm thử thật trong Chrome (puppeteer, cả sáng/tối): onboarding, Hôm nay, thêm món (tìm/khẩu phần/nhập nhanh/bữa mẫu/món riêng), sửa/xoá/Hoàn tác, Vận động, Tuần, Mục tiêu, AI (với phản hồi Gemini giả lập — **chưa thử bằng key thật**), lưu IndexedDB, đồng bộ Supabase 2 thiết bị.
-- Supabase: schema đã chạy (dùng chung với app CFO), "Confirm email" đã tắt. Tài khoản test: **Nam** (PIN do người dùng giữ; có 3 món test ngày 2026-10-05).
-- Đã xoá ảnh bò thừa của bản draft (`public/images/`). Chưa có git repo.
-- Chưa thử trên điện thoại thật.
+- **Đã deploy**: https://hoanganhkiet14021996.github.io/NomNam/ (repo `hoanganhkiet14021996/NomNam`, nhánh `main`). Kiểm tra từ ngoài: trang, manifest, sw.js, icon, logo đều 200 và đúng base `/NomNam/`; địa chỉ Supabase đã nhúng vào bản build.
+- Email ảo đã đổi sang `@namnguyen27.app` (2026-10-05). Tài khoản test cũ `nam@calitrack.app` cần xoá tay trong Supabase (Authentication → Users) — **chú ý project dùng chung với app CFO**: app CFO cũng phải đổi sang cùng domain mới thì mới còn chung tài khoản.
+- Test: 48 test (nutrition, auth, utils, store). `npm run check` phải xanh trước khi push.
+- **Chưa làm**: thử tay thêm/xoá món/bữa mẫu trên bản live và trên điện thoại thật; cài PWA; thử AI bằng Gemini key thật; thêm URL Pages vào Supabase Redirect URLs (nếu chưa).
 
-## Deploy lên GitHub Pages (code đã sẵn sàng, chờ push)
+## Deploy (GitHub Pages)
 
-Đã làm: `base` qua biến `VITE_BASE` (mặc định `/`), manifest `start_url`/`scope`/icon theo base, `navigateFallback` theo base, logo Onboarding dùng `BASE_URL`, `.github/workflows/deploy.yml` (test → build → deploy; `VITE_BASE=/<tên repo>/` tự đặt; Supabase URL/key đọc từ **Variables** của repo), `git init` (nhánh main). Còn lại: đặt git user, commit, tạo repo, push, bật Pages, thêm Variables, thêm URL Pages vào Supabase Redirect URLs. Build local test base: dùng PowerShell (`$env:VITE_BASE='/x/'`) — Git Bash bẻ `/x/` thành đường dẫn Windows.
-
-Chi tiết các bước gốc:
-
-Người dùng sẽ deploy bằng GitHub Pages. Những việc cần làm khi tới bước này:
-1. `git init`, commit đầu tiên (kiểm tra `.env` KHÔNG bị add), tạo repo GitHub và push.
-2. **Base path**: Pages phục vụ ở `https://<user>.github.io/<repo>/` → đặt `base: '/<repo>/'` trong `vite.config.ts` (hoặc qua biến môi trường lúc build). Các đường dẫn tuyệt đối hiện có phải đổi theo base:
-   - manifest PWA trong `vite.config.ts`: `start_url: '/'`, `src: '/icon-…png'` → dùng đường dẫn tương đối hoặc ghép base; đặt `scope`.
-   - `src/features/onboarding/Onboarding.tsx`: `src="/brand/logo.svg"` → `` `${import.meta.env.BASE_URL}brand/logo.svg` ``.
-   - `index.html`: các `href="/favicon.svg"`, `/apple-touch-icon.png` — Vite tự thêm base cho asset trong index.html, kiểm tra lại sau build.
-   - `navigateFallback` của workbox nên là `index.html` theo base.
-3. App không dùng router (tab lưu trong `#hash`) → không cần trick 404.html cho SPA.
-4. GitHub Actions workflow (`.github/workflows/deploy.yml`): checkout → `npm ci` → `npm run build` với env `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (đặt trong repo Settings → Secrets/Variables) → `actions/upload-pages-artifact` (thư mục `dist`) → `actions/deploy-pages`. Bật Pages: Settings → Pages → Source: GitHub Actions.
-5. Sau deploy: mở link trên điện thoại, cài PWA, đăng nhập tên + PIN, thử AI với Gemini key thật.
+- Quy trình: sửa code → `npm run check` → `git add -A; git commit; git push` → workflow `.github/workflows/deploy.yml` tự chạy (lint → test → build → deploy, ~1–2 phút). Xem tiến trình ở tab Actions của repo.
+- `base` lấy từ biến `VITE_BASE` (mặc định `/`; workflow tự đặt `/<tên repo>/`). Manifest `start_url`/`scope`/icon, `navigateFallback` và logo Onboarding (`BASE_URL`) đều theo base.
+- Supabase URL/key đọc từ **repo Variables** (Settings → Secrets and variables → Actions → tab Variables): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. Phải là Variables (workflow dùng `vars.*`), không phải Secrets. Đổi Variables xong phải Re-run workflow vì giá trị được nhúng lúc build.
+- Pages: Settings → Pages → Source = GitHub Actions.
+- Supabase Redirect URLs cần chứa URL Pages của mọi app dùng chung project.
+- Test base cục bộ: dùng **PowerShell** (`$env:VITE_BASE='/x/'; npm run build`) — Git Bash bẻ `/x/` thành đường dẫn Windows.
+- Máy này: git user đặt cục bộ trong repo (`hoanganhkiet14021996`). Không có `gh` CLI; tạo repo/Variables/Pages làm trên web. Push dùng Git Credential Manager đã đăng nhập.
+- App không dùng router (tab lưu trong `#hash`) → không cần trick 404.html cho SPA. PWA `autoUpdate`: bản mới chỉ hiện sau khi tắt hẳn rồi mở lại app 1–2 lần.
 
 ## Tài liệu
 
