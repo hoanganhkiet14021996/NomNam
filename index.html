@@ -17,6 +17,8 @@
         var t = JSON.parse(localStorage.getItem('calitrack-theme') || '"system"');
         var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) document.documentElement.classList.add('dark');
+        var p = JSON.parse(localStorage.getItem('calitrack-palette') || '"nomnam"');
+        if (p !== 'nomnam') document.documentElement.dataset.palette = p;
       } catch (e) {}
     </script>
   </head>

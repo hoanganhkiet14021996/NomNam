@@ -73,6 +73,7 @@ src/
 
 - Mobile-first, `max-w-lg` căn giữa; bottom nav 5 nút: Hôm nay · Tuần · (+) · Vận động · Mục tiêu.
 - Màu macro dùng token, không hard-code: `kcal` (nâu đỏ thương hiệu), `protein` (rose), `carbs` (amber), `fat` (sky), `fiber` (lime), `success`, `warning` — định nghĩa ở `src/index.css` cho cả light/dark. Chart đọc màu qua `useCssColors()` (SVG không hiểu `var()`).
+- Bảng màu (`settings.palette`: `nomnam` | `pink`) độc lập với sáng/tối, đặt qua `data-palette` trên `<html>`; palette mới chỉ ghi đè token trong `index.css` (`:root[data-palette=…]` và `:root.dark[data-palette=…]`). Kiểm tra tương phản chữ ≥ 4.5:1.
 - Protein luôn nổi bật nhất (mục tiêu chính). Số dùng class `num` (tabular-nums).
 - Thao tác xoá → toast có **Hoàn tác** (không dùng `confirm()`/`prompt()`).
 - Nhập số dùng `NumberField` (có −/+, gõ trực tiếp, ô = 0 thì focus để trống).
@@ -92,7 +93,7 @@ src/
 - Logo gốc: `logoNomNam.svg` (người dùng tự thiết kế — **không tự ý sửa hình**). Bản dùng trong app: `public/brand/logo.svg` (bỏ metadata), `logo-fullbleed.svg` (bỏ 4 góc kem, cho icon cài máy), `logo-maskable.svg` (thu 78% cho Android). PNG: `icon-192/512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`; `favicon.svg` = logo gốc.
 - Màu thương hiệu: nâu đỏ `#6A201A` (= `--primary` sáng) và kem `#F6E9D8`. Chế độ tối dùng primary màu kem-be để đủ tương phản.
 
-- Tên hiển thị: **NomNam**. Các khoá nội bộ vẫn mang tên cũ `calitrack` **có chủ ý**: IndexedDB `calitrack-data`, localStorage `calitrack-settings` / `calitrack-theme`, email ảo `@namnguyen27.app` (đã đổi từ `@calitrack.app` ngày 2026-10-05). Không đổi các khoá này (mất dữ liệu / hỏng tài khoản).
+- Tên hiển thị: **NomNam**. Các khoá nội bộ vẫn mang tên cũ `calitrack` **có chủ ý**: IndexedDB `calitrack-data`, localStorage `calitrack-settings` / `calitrack-theme` / `calitrack-palette`, email ảo `@namnguyen27.app` (đã đổi từ `@calitrack.app` ngày 2026-10-05). Không đổi các khoá này (mất dữ liệu / hỏng tài khoản).
 
 ## Trạng thái hiện tại (2026-10-06, v0.2.3)
 

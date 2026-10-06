@@ -66,7 +66,7 @@ export function CustomFoodForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Khẩu phần">
-          <Input value={servingLabel} onChange={(e) => setServingLabel(e.target.value)} />
+          <Input value={servingLabel} onChange={(e) => setServingLabel(e.target.value)} aria-label="Khẩu phần" />
         </Field>
         <Field label="Nặng (g)">
           <NumberField value={servingGrams} onChange={setServingGrams} step={10} min={1} ariaLabel="Gram mỗi phần" className="h-11" />

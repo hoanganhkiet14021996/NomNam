@@ -1,5 +1,15 @@
 # Nhật Ký Thay Đổi (Changelog) - NomNam
 
+## [V0.2.5] - 2026-10-06
+### Thêm (Added)
+- Thêm 53 món vào `foods.vn.ts` (cơm quán, món mặn, bún/miến/mì, bánh mì, món Tây, đồ uống, thịt/cá/trứng đã chín); chi tiết nguồn ở `docs/food-research-log.md`.
+- Bảng màu **Hồng** (hồng phấn dịu, nữ tính) chọn ở Mục tiêu → Giao diện, dùng được với cả Sáng/Tối. Token ở `src/index.css` dưới `[data-palette="pink"]`; protein đổi sang tím lan để không lẫn với primary hồng. Lưu theo thiết bị (`calitrack-palette`), áp trước khi render để không nháy màu.
+- Agent `.claude/agents/ui-design-reviewer.md` để audit màu / cân xứng / font; báo cáo ở `docs/ui-review.md`.
+### Sửa (Fixed)
+- Audit nhóm đạm (thịt/cá/hải sản/trứng/nội tạng/đậu hũ) với nguồn USDA FDC, Matvaretabellen, PhilFCT: sửa 15 món cũ (vd. cá ngừ hộp 116 → 99 kcal, ba chỉ sống 260 → 356, bò nạc sống 118 → 136, xúc xích 290 → 249), thêm 72 món đạm đã chín (13 món ước tính: cá lóc/trê/bớp/hú/nục, lươn, ốc, bắp bò, lạp xưởng, chả cá, cá viên, ba chỉ luộc — độ tin cậy thấp, ghi rõ trong log; trứng vịt/cút luộc tính từ hệ số trứng gà) (gà/vịt/dê/cừu/bò/heo/nội tạng/cá/hải sản/trứng/đậu hũ/tempeh), mọi nguyên liệu đạm có khẩu phần 100g và 200g, tên ghi rõ sống/đã chín. Chi tiết và URL nguồn ở `docs/food-research-log.md`.
+- Bấm vào nhãn của ô số (Tự đặt mục tiêu, sửa món, Nhập nhanh, Món riêng) làm giảm giá trị: `<label>` bọc `NumberField` gắn vào nút "−" → đổi thành `<div>`.
+- Chữ màu macro ở chế độ sáng quá nhạt (carbs chỉ 2.6:1): làm đậm token chữ (≥ 4.5:1 trên card); thanh/chấm dùng token tươi riêng `bg-*-fill`.
+
 ## [V0.2.4] - 2026-10-06
 ### Thêm (Added)
 - Deploy GitHub Pages: `.github/workflows/deploy.yml` (lint → test → build → deploy), `base` theo `VITE_BASE`, manifest/service worker/logo theo base.

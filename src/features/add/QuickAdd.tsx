@@ -60,14 +60,16 @@ export function QuickAdd({
   )
 }
 
+// div, không dùng <label>: <label> bọc NumberField sẽ gắn vào nút "−" đầu tiên → bấm nhãn làm giảm giá trị.
+// Control bên trong tự mang aria-label.
 export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1">
+    <div className="space-y-1">
       <span className="flex items-baseline justify-between text-xs font-semibold text-muted-foreground">
         {label}
         {hint && <span className="font-normal text-primary">{hint}</span>}
       </span>
       {children}
-    </label>
+    </div>
   )
 }

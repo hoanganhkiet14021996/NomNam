@@ -28,12 +28,13 @@ export default {
         card: { DEFAULT: token("card"), foreground: token("card-foreground") },
         // Màu macro — dùng thống nhất ở mọi màn hình
         kcal: token("kcal"),
-        protein: token("protein"),
-        carbs: token("carbs"),
-        fat: token("fat"),
-        fiber: token("fiber"),
-        success: token("success"),
-        warning: token("warning"),
+        // DEFAULT = màu chữ (đậm, dễ đọc); fill = màu tươi cho thanh/chấm (bg-protein-fill)
+        protein: { DEFAULT: token("protein"), fill: token("protein-fill") },
+        carbs: { DEFAULT: token("carbs"), fill: token("carbs-fill") },
+        fat: { DEFAULT: token("fat"), fill: token("fat-fill") },
+        fiber: { DEFAULT: token("fiber"), fill: token("fiber-fill") },
+        success: { DEFAULT: token("success"), fill: token("success-fill") },
+        warning: { DEFAULT: token("warning"), fill: token("warning-fill") },
       },
       borderRadius: {
         "2xl": "calc(var(--radius) + 6px)",

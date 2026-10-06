@@ -131,9 +131,12 @@ export interface Profile {
 }
 
 export type ThemePref = 'system' | 'light' | 'dark'
+/** Bảng màu (độc lập với sáng/tối). */
+export type Palette = 'nomnam' | 'pink'
 
 export interface Settings {
   theme: ThemePref
+  palette: Palette
   geminiKey: string
   geminiModel: string
 }

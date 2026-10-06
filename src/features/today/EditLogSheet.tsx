@@ -78,7 +78,7 @@ function EditForm({ log, onDone }: { log: FoodLog; onDone: () => void }) {
       ) : (
         <div className="grid grid-cols-2 gap-2">
           {(['kcal', 'protein', 'carbs', 'fat', 'fiber'] as const).map((k) => (
-            <label key={k} className="space-y-1">
+            <div key={k} className="space-y-1">
               <span className="text-xs font-semibold text-muted-foreground">{LABEL[k]}</span>
               <NumberField
                 value={Math.round(manual[k] * 10) / 10}
@@ -88,7 +88,7 @@ function EditForm({ log, onDone }: { log: FoodLog; onDone: () => void }) {
                 ariaLabel={LABEL[k]}
                 className="h-11"
               />
-            </label>
+            </div>
           ))}
         </div>
       )}

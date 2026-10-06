@@ -26,13 +26,22 @@
     --radius: 0.875rem;
     --shadow: 10 40% 18%;
 
+    /* Màu macro cho CHỮ/icon: đủ đậm để đạt ≥ 4.5:1 trên card. */
     --kcal: 4.5 61% 32%;
-    --protein: 340 78% 50%;
-    --carbs: 36 92% 46%;
-    --fat: 199 84% 42%;
-    --fiber: 84 60% 36%;
-    --success: 152 60% 34%;
-    --warning: 28 92% 46%;
+    --protein: 340 78% 46%;
+    --carbs: 32 95% 31%;
+    --fat: 200 90% 33%;
+    --fiber: 88 65% 26%;
+    --success: 152 65% 28%;
+    --warning: 24 90% 36%;
+
+    /* Bản tươi cho THANH/chấm (bg-*-fill) — không chứa chữ nên chỉ cần ≥ 3:1. */
+    --protein-fill: 340 78% 50%;
+    --carbs-fill: 36 92% 46%;
+    --fat-fill: 199 84% 42%;
+    --fiber-fill: 84 60% 36%;
+    --success-fill: 152 60% 34%;
+    --warning-fill: 28 92% 46%;
   }
 
   .dark {
@@ -64,6 +73,67 @@
     --fiber: 84 60% 52%;
     --success: 152 58% 50%;
     --warning: 32 95% 58%;
+
+    /* Nền tối: màu chữ đã đủ sáng, thanh dùng chung */
+    --protein-fill: var(--protein);
+    --carbs-fill: var(--carbs);
+    --fat-fill: var(--fat);
+    --fiber-fill: var(--fiber);
+    --success-fill: var(--success);
+    --warning-fill: var(--warning);
+  }
+
+  /* Bảng màu Hồng: hồng phấn dịu, nữ tính. Chỉ đổi nền/trung tính/primary/kcal/protein —
+     carbs/fat/fiber giữ nguyên để không phải học lại màu. Protein chuyển sang tím lan
+     để không lẫn với primary hồng. Chữ chính/phụ/primary/macro ≥ 4.5:1 trên card; carbs/fat/fiber kế thừa từ bảng gốc. */
+  :root[data-palette="pink"] {
+    --background: 340 60% 97%;
+    --foreground: 336 30% 16%;
+    --card: 340 80% 99.5%;
+    --card-foreground: 336 30% 16%;
+    --popover: 340 80% 99.5%;
+    --popover-foreground: 336 30% 16%;
+    --primary: 343 42% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 340 45% 93%;
+    --secondary-foreground: 336 30% 20%;
+    --muted: 340 40% 93%;
+    --muted-foreground: 338 14% 40%;
+    --accent: 340 50% 92%;
+    --accent-foreground: 336 30% 20%;
+    --border: 340 35% 88%;
+    --input: 340 30% 84%;
+    --ring: 340 55% 60%;
+    --shadow: 340 40% 30%;
+
+    --kcal: 340 55% 46%;
+    --protein: 285 45% 48%;
+    --protein-fill: 285 45% 52%;
+  }
+
+  :root.dark[data-palette="pink"] {
+    --background: 335 18% 7%;
+    --foreground: 340 40% 94%;
+    --card: 335 16% 11%;
+    --card-foreground: 340 40% 94%;
+    --popover: 335 16% 12%;
+    --popover-foreground: 340 40% 94%;
+    --primary: 340 75% 78%;
+    --primary-foreground: 336 40% 18%;
+    --secondary: 335 14% 17%;
+    --secondary-foreground: 340 40% 92%;
+    --muted: 335 14% 16%;
+    --muted-foreground: 338 14% 66%;
+    --accent: 335 16% 18%;
+    --accent-foreground: 340 40% 94%;
+    --border: 335 14% 20%;
+    --input: 335 14% 24%;
+    --ring: 340 70% 70%;
+    --shadow: 0 0% 0%;
+
+    --kcal: 340 80% 72%;
+    --protein: 285 60% 74%;
+    --protein-fill: var(--protein);
   }
 }
 

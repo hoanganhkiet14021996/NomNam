@@ -13,7 +13,7 @@ import { calcAutoTargets, calcBMR, calcBaseTDEE, fmtKcal, GOAL_FACTOR, GOAL_LABE
 import { DEFAULT_GEMINI_MODEL, useSettings } from '@/store/settings'
 import { useTargets } from '@/store/hooks'
 import { useAppStore } from '@/store/useAppStore'
-import type { ThemePref } from '@/types'
+import type { Palette, ThemePref } from '@/types'
 import { AccountCard } from './AccountCard'
 import { ProfileForm } from './ProfileForm'
 
@@ -160,10 +160,10 @@ function OverrideEditor() {
                 ['fiber', 'Xơ (g)', 1],
               ] as const
             ).map(([k, label, step]) => (
-              <label key={k} className="space-y-1">
+              <div key={k} className="space-y-1">
                 <span className="text-xs font-semibold text-muted-foreground">{label}</span>
                 <NumberField value={targets[k]} onChange={set(k)} step={step} ariaLabel={label} className="h-11" />
-              </label>
+              </div>
             ))}
           </div>
           <p className="text-xs text-muted-foreground">Carbs tự tính từ phần calo còn lại ({targets.carbs}g).</p>
@@ -215,8 +215,17 @@ function GeminiSettings() {
 function ThemeSettings() {
   const theme = useSettings((s) => s.theme)
   const setTheme = useSettings((s) => s.setTheme)
+  const palette = useSettings((s) => s.palette)
+  const setPalette = useSettings((s) => s.setPalette)
+  // Chấm màu xem trước cố định (không theo token vì phải hiện màu của bảng chưa chọn)
+  const swatch = (color: string, label: string) => (
+    <span className="flex items-center justify-center gap-2">
+      <span className="h-3.5 w-3.5 rounded-full ring-1 ring-black/10" style={{ background: color }} aria-hidden />
+      {label}
+    </span>
+  )
   return (
-    <Card className="p-4">
+    <Card className="space-y-3 p-4">
       <Segmented<ThemePref>
         value={theme}
         onChange={setTheme}
@@ -224,6 +233,14 @@ function ThemeSettings() {
           { value: 'light', label: <span className="flex items-center justify-center gap-1.5"><Sun className="h-4 w-4" /> Sáng</span> },
           { value: 'dark', label: <span className="flex items-center justify-center gap-1.5"><Moon className="h-4 w-4" /> Tối</span> },
           { value: 'system', label: <span className="flex items-center justify-center gap-1.5"><Monitor className="h-4 w-4" /> Tự động</span> },
+        ]}
+      />
+      <Segmented<Palette>
+        value={palette}
+        onChange={setPalette}
+        options={[
+          { value: 'nomnam', label: swatch('#6A201A', 'NomNam') },
+          { value: 'pink', label: swatch('#B8516E', 'Hồng') },
         ]}
       />
     </Card>

@@ -66,8 +66,8 @@ export function DateStrip() {
                 className={cn(
                   'relative h-1.5 w-1.5 rounded-full',
                   !d.logged && 'bg-transparent',
-                  d.logged && d.hit && (active ? 'bg-primary-foreground' : 'bg-success'),
-                  d.logged && !d.hit && (d.kcalOk || d.proteinOk) && 'bg-warning',
+                  d.logged && d.hit && (active ? 'bg-primary-foreground' : 'bg-success-fill'),
+                  d.logged && !d.hit && (d.kcalOk || d.proteinOk) && 'bg-warning-fill',
                   d.logged && !d.kcalOk && !d.proteinOk && (active ? 'bg-primary-foreground/50' : 'bg-muted-foreground/40'),
                 )}
               />

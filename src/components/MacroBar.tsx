@@ -6,10 +6,10 @@ import { fmtG } from '@/lib/nutrition'
 export type MacroKey = 'protein' | 'carbs' | 'fat' | 'fiber'
 
 const MACRO_META: Record<MacroKey, { label: string; short: string; bar: string; text: string }> = {
-  protein: { label: 'Protein', short: 'P', bar: 'bg-protein', text: 'text-protein' },
-  carbs: { label: 'Carbs', short: 'C', bar: 'bg-carbs', text: 'text-carbs' },
-  fat: { label: 'Fat', short: 'F', bar: 'bg-fat', text: 'text-fat' },
-  fiber: { label: 'Chất xơ', short: 'Xơ', bar: 'bg-fiber', text: 'text-fiber' },
+  protein: { label: 'Protein', short: 'P', bar: 'bg-protein-fill', text: 'text-protein' },
+  carbs: { label: 'Carbs', short: 'C', bar: 'bg-carbs-fill', text: 'text-carbs' },
+  fat: { label: 'Fat', short: 'F', bar: 'bg-fat-fill', text: 'text-fat' },
+  fiber: { label: 'Chất xơ', short: 'Xơ', bar: 'bg-fiber-fill', text: 'text-fiber' },
 }
 
 /** Thanh tiến độ 1 macro. `emphasis` = to hơn (dùng cho protein — mục tiêu chính). */

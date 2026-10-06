@@ -4,7 +4,7 @@ import { Toaster } from 'sonner'
 import { BottomNav } from '@/components/BottomNav'
 import { startSync } from '@/lib/sync'
 import { todayKey } from '@/lib/date'
-import { applyTheme, useSettings } from '@/store/settings'
+import { applyPalette, applyTheme, useSettings } from '@/store/settings'
 import { useAppStore, useHydrated } from '@/store/useAppStore'
 import { useUi } from '@/store/ui'
 import { ActivityView } from '@/features/activity/ActivityView'
@@ -24,10 +24,15 @@ export default function App() {
   const onboarded = useAppStore((s) => s.onboarded)
   const tab = useUi((s) => s.tab)
   const theme = useSettings((s) => s.theme)
+  const palette = useSettings((s) => s.palette)
 
   useEffect(() => {
     startSync()
   }, [])
+
+  useEffect(() => {
+    applyPalette(palette)
+  }, [palette])
 
   // Theo dõi theme hệ thống khi chọn "Tự động"
   useEffect(() => {
