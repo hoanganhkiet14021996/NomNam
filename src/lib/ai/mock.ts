@@ -1,0 +1,111 @@
+/**
+ * Phản hồi Gemini giả lập — CHỈ dùng khi `npm run dev` và Gemini key = MOCK_API_KEY
+ * ('mock-key-for-local-testing'). Không lọt vào bản build (import động sau `import.meta.env.DEV`).
+ * Bao đủ các trường hợp: khớp bảng, có câu hỏi lại, xào cần thêm dầu, món chưa có trong bảng.
+ */
+export async function mockAnalyze(text?: string): Promise<unknown> {
+  await new Promise((r) => setTimeout(r, 600))
+  if (text && /khong phai|không phải/i.test(text)) return { dishName: '', items: [], note: 'Ảnh không có đồ ăn.' }
+  return {
+    dishName: 'Cơm trưa: cơm, thịt heo, rau muống xào, chả cá thác lác',
+    note: 'Giả định thịt có mỡ vừa; rau xào với dầu.',
+    items: [
+      {
+        name: 'Cơm trắng',
+        emoji: '🍚',
+        role: 'carb',
+        kind: 'cơm trắng',
+        cooking: 'boiled',
+        grams: 180,
+        kcal: 234,
+        protein: 4.9,
+        carbs: 50.8,
+        fat: 0.5,
+        fiber: 0.7,
+        foodId: 'com-trang',
+        candidates: ['com-trang', 'com-chien-trung'],
+        confidence: 'high',
+        question: {
+          text: 'Lượng cơm khoảng?',
+          options: [
+            { label: '1 chén (150g)', foodId: '', grams: 150 },
+            { label: '1 chén đầy (200g)', foodId: '', grams: 200 },
+            { label: '2 chén (300g)', foodId: '', grams: 300 },
+          ],
+        },
+      },
+      {
+        name: 'Thịt heo nướng',
+        emoji: '🥩',
+        role: 'protein',
+        kind: 'thịt heo (ba chỉ hoặc nạc dăm)',
+        cooking: 'grilled',
+        grams: 120,
+        kcal: 380,
+        protein: 22,
+        carbs: 3,
+        fat: 31,
+        fiber: 0,
+        foodId: 'ba-chi-nuong',
+        candidates: ['ba-chi-nuong', 'heo-nac-dam-chin', 'suon-nuong'],
+        confidence: 'low',
+        question: {
+          text: 'Thịt này là?',
+          options: [
+            { label: 'Ba chỉ', foodId: 'ba-chi-nuong', grams: 0 },
+            { label: 'Nạc dăm / vai', foodId: 'heo-nac-dam-chin', grams: 0 },
+            { label: 'Sườn', foodId: 'suon-nuong', grams: 0 },
+          ],
+        },
+      },
+      {
+        name: 'Rau muống xào tỏi',
+        emoji: '🥬',
+        role: 'veg',
+        kind: 'rau muống',
+        cooking: 'stir_fried',
+        grams: 150,
+        kcal: 45,
+        protein: 3.9,
+        carbs: 4.7,
+        fat: 0.3,
+        fiber: 3,
+        foodId: 'rau-muong',
+        candidates: ['rau-muong'],
+        confidence: 'medium',
+      },
+      {
+        name: 'Dầu ăn (xào)',
+        emoji: '🫗',
+        role: 'fat',
+        kind: 'dầu thực vật',
+        cooking: 'other',
+        grams: 8,
+        kcal: 71,
+        protein: 0,
+        carbs: 0,
+        fat: 8,
+        fiber: 0,
+        foodId: 'dau-an',
+        candidates: ['dau-an'],
+        confidence: 'medium',
+      },
+      {
+        name: 'Chả cá thác lác chiên',
+        emoji: '🐟',
+        role: 'protein',
+        kind: 'chả cá thác lác',
+        cooking: 'fried',
+        grams: 80,
+        kcal: 190,
+        protein: 13,
+        carbs: 8,
+        fat: 12,
+        fiber: 0,
+        foodId: '',
+        candidates: ['cha-ca-chien'],
+        confidence: 'medium',
+      },
+    ],
+  }
+}

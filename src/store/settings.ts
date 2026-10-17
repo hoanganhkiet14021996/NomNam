@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Palette, Settings, ThemePref } from '@/types'
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash'
 
 interface SettingsState extends Settings {
   setTheme: (t: ThemePref) => void

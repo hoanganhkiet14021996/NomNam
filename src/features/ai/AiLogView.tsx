@@ -1,28 +1,27 @@
-import { useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, Camera, ImagePlus, KeyRound, Loader2, Sparkles, X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { ArrowLeft, Camera, ImagePlus, KeyRound, Loader2, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { MacroInline } from '@/components/MacroBar'
-import { NumberField } from '@/components/NumberField'
-import { analyzeMeal, prepareImage, type AiItem } from '@/lib/ai/gemini'
-import { fmtKcal, multiplyNutrients, pickNutrients, sumNutrients } from '@/lib/nutrition'
+import { analyzeMeal, prepareImage } from '@/lib/ai/gemini'
+import { reviewNutrients, roleToCategory, toReviewItem, type ReviewItem } from '@/lib/ai/match'
+import { fmtKcal, sumNutrients } from '@/lib/nutrition'
 import { cn } from '@/lib/utils'
-import { MEAL_LABEL } from '@/store/derive'
+import { MEAL_LABEL, portionHints, usualPortions } from '@/store/derive'
+import { useAllFoods } from '@/store/hooks'
 import { useSettings } from '@/store/settings'
+import { useAppStore } from '@/store/useAppStore'
 import type { MealType, Nutrients } from '@/types'
+import { AiReviewItem } from './AiReviewItem'
 
 export interface AiConfirmedItem extends Nutrients {
   name: string
   emoji: string
   grams: number
-}
-
-interface ReviewItem extends AiItem {
-  /** gram gốc AI ước lượng — dùng để scale dinh dưỡng khi người dùng sửa gram */
-  baseGrams: number
-  base: Nutrients
+  foodId: string | null
 }
 
 const EXAMPLES = ['1 chén cơm, 150g ức gà áp chảo, rau muống xào', 'phở bò tái, 1 ly cà phê sữa đá', '3 trứng luộc, 2 lát bánh mì đen, 1 muỗng whey với sữa tươi không đường']
@@ -37,6 +36,11 @@ export function AiLogView({
   onConfirm: (items: AiConfirmedItem[]) => void
 }) {
   const { geminiKey, geminiModel, setGemini } = useSettings()
+  const foods = useAllFoods()
+  const foodLogs = useAppStore((s) => s.foodLogs)
+  const addCustomFood = useAppStore((s) => s.addCustomFood)
+  const noteFoodRequests = useAppStore((s) => s.noteFoodRequests)
+  const usual = useMemo(() => usualPortions(foodLogs), [foodLogs])
   const [mode, setMode] = useState<'text' | 'photo'>('text')
   const [text, setText] = useState('')
   const [image, setImage] = useState<{ base64: string; mimeType: string; previewUrl: string } | null>(null)
@@ -44,6 +48,7 @@ export function AiLogView({
   const [error, setError] = useState<string | null>(null)
   const [items, setItems] = useState<ReviewItem[] | null>(null)
   const [note, setNote] = useState<string | undefined>()
+  const [dishName, setDishName] = useState('')
   const [keyDraft, setKeyDraft] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -55,10 +60,13 @@ export function AiLogView({
         apiKey: geminiKey,
         model: geminiModel,
         text: text.trim() || undefined,
+        foods,
+        portionHints: portionHints(usual),
         image: mode === 'photo' && image ? { base64: image.base64, mimeType: image.mimeType } : undefined,
       })
       setNote(res.note)
-      setItems(res.items.map((it) => ({ ...it, baseGrams: it.grams || 1, base: pickNutrients(it) })))
+      setDishName(res.dishName)
+      setItems(res.items.map((raw, i) => toReviewItem(raw, foods, i)))
       if (!res.items.length) setError(res.note || 'AI không nhận ra món ăn nào.')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -109,63 +117,52 @@ export function AiLogView({
 
   // ── Xem lại kết quả ─────────────────────────────────
   if (items && items.length) {
-    const total = sumNutrients(items.map(pickNutrients))
+    const total = sumNutrients(items.map(reviewNutrients))
+    const unanswered = items.filter((it) => it.question && !it.answer).length
+    const confirm = () => {
+      const out: AiConfirmedItem[] = items.map((it) => {
+        const n = reviewNutrients(it)
+        const name = it.name.trim() || 'Món AI'
+        let foodId = it.food?.id ?? null
+        if (!it.food && it.saveCustom) {
+          foodId = addCustomFood({
+            name,
+            emoji: it.emoji,
+            category: roleToCategory(it.role),
+            per100: it.ai.per100,
+            servings: [{ label: '1 phần', grams: it.grams }],
+            defaultGrams: it.grams,
+            aliases: it.kind ? [it.kind] : [],
+          }).id
+        }
+        return { name, emoji: it.emoji, grams: Math.round(it.grams), foodId, ...n }
+      })
+      // Món chưa có trong bảng (kể cả vừa lưu thành món riêng) → chờ research để bổ sung số chuẩn
+      const requests = items
+        .filter((it) => !it.food)
+        .map((it) => ({ name: it.name.trim() || 'Món AI', emoji: it.emoji, role: it.role, kind: it.kind, cooking: it.cooking, per100: it.ai.per100, grams: it.grams }))
+      if (requests.length) {
+        noteFoodRequests(requests)
+        toast.message(`${requests.length} món chưa có trong bảng`, { description: 'Đã ghi vào Mục tiêu → Món chờ bổ sung.' })
+      }
+      onConfirm(out)
+    }
     return (
       <div className="space-y-3 px-4 pb-6 pt-1">
         <Header onBack={() => setItems(null)} title="Kiểm tra lại" />
+        {dishName && <p className="px-1 text-sm font-semibold">{dishName}</p>}
         {note && <p className="rounded-xl bg-muted px-3 py-2 text-xs text-muted-foreground">💡 {note}</p>}
         <ul className="space-y-2">
           <AnimatePresence initial={false}>
             {items.map((it, i) => (
-              <motion.li
-                key={i + it.name}
-                layout
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                className="space-y-2 rounded-2xl border bg-card p-3"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="text-xl" aria-hidden>
-                    {it.emoji}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <input
-                      value={it.name}
-                      aria-label="Tên món"
-                      onChange={(e) => setItems((arr) => arr!.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                      className="w-full bg-transparent text-sm font-semibold outline-none"
-                    />
-                    <MacroInline {...it} />
-                  </div>
-                  <div className="text-right">
-                    <div className="num text-sm font-bold">{fmtKcal(it.kcal)} kcal</div>
-                    {it.confidence === 'low' && <div className="text-[10px] font-semibold text-warning">ước lượng thô</div>}
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`Bỏ ${it.name}`}
-                    onClick={() => setItems((arr) => arr!.filter((_, j) => j !== i))}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <NumberField
-                  value={Math.round(it.grams)}
-                  onChange={(g) =>
-                    setItems((arr) =>
-                      arr!.map((x, j) => (j === i ? { ...x, grams: g, ...multiplyNutrients(x.base, g / x.baseGrams) } : x)),
-                    )
-                  }
-                  step={10}
-                  min={1}
-                  max={5000}
-                  suffix="g"
-                  ariaLabel={`Khối lượng ${it.name}`}
-                  className="h-10"
-                />
-              </motion.li>
+              <AiReviewItem
+                key={it.key}
+                item={it}
+                foods={foods}
+                usual={usual}
+                onChange={(next) => setItems((arr) => arr!.map((x, j) => (j === i ? next : x)))}
+                onRemove={() => setItems((arr) => arr!.filter((_, j) => j !== i))}
+              />
             ))}
           </AnimatePresence>
         </ul>
@@ -175,11 +172,8 @@ export function AiLogView({
             <span className="num text-lg font-extrabold">{fmtKcal(total.kcal)} kcal</span>
           </div>
           <MacroInline {...total} className="justify-end" />
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => onConfirm(items.map((it) => ({ name: it.name.trim() || 'Món AI', emoji: it.emoji, grams: Math.round(it.grams), ...pickNutrients(it) })))}
-          >
+          {unanswered > 0 && <p className="text-xs text-warning">Còn {unanswered} câu hỏi chưa trả lời — đang dùng lựa chọn của AI.</p>}
+          <Button size="lg" className="w-full" onClick={confirm}>
             Thêm {items.length} món vào {MEAL_LABEL[meal].toLowerCase()}
           </Button>
         </div>

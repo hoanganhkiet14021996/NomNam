@@ -1,5 +1,21 @@
 # Nhật Ký Thay Đổi (Changelog) - NomNam
 
+## [Chưa phát hành]
+### Thêm (Added)
+- AI ghi món (ảnh/chữ): món khớp bảng món của app (theo `foodId` AI trả về hoặc tên/alias khớp chính xác không dấu) thì kcal/macro **tính lại từ DB** theo gram, nhãn "✓ theo bảng món"; món lạ giữ số AI ước lượng, nhãn "AI ước lượng". Bảng gửi AI kèm id và gồm cả món riêng. Logic ở `src/lib/ai/match.ts` (có test).
+- AI trả output có cấu trúc: tên bữa, từng thành phần với vai trò (tinh bột/đạm/rau/…), loại cụ thể, cách nấu; tự thêm dòng "Dầu ăn" cho nguyên liệu chiên/xào.
+- **AI hỏi lại** khi phân vân (vd "Thịt này là? Ba chỉ / Nạc dăm / Sườn", "Lượng cơm?"): bấm đáp án là đổi món/gram.
+- **Top 3 món trong bảng** dưới mỗi thành phần để chọn lại, kèm "✨ AI ước lượng".
+- **Ghi nhớ khẩu phần**: trung vị gram 10 lần ăn gần nhất mỗi món → nút "Phần quen 220g" và gửi kèm prompt cho AI.
+- **Món chờ bổ sung** (Mục tiêu): món AI nhận ra nhưng chưa có trong bảng được ghi lại (gộp theo tên, đếm số lần ăn), sync qua bảng Supabase `food_requests` (mới — chạy SQL trong `supabase_schema.sql`; chưa tạo bảng thì sync bỏ qua bảng này). `npm run food-requests` tải danh sách về máy tính cho agent food-researcher. Khi bảng có món → "Cập nhật N bữa" tính lại các bữa cũ (có Hoàn tác). Tuỳ chọn "Lưu thành món riêng" ngay trên màn kiểm tra.
+- **Bảng món ~250 → ~630 món** (chưa phát hành): tách thành `src/data/foods/*.ts` theo nhóm — thịt/cá/trứng 80 (heo, bò nạc/lẫn mỡ sống/chín, bò xay các mức béo, gà/vịt/ngan, cá VN, tôm/cua, trứng), rau củ/trái cây/tinh bột/đậu hạt/sữa/gia vị 123, món cơm quán/canh/xào 63, bún phở/cháo/xôi/bánh/chè 60, món Tây/chuỗi/đồ uống 52. Nhóm thịt cá sinh bằng `scripts/foods-bulk.mjs` từ USDA + Matvaretabellen + Bảng thành phần thực phẩm VN (Viện Dinh dưỡng, API công khai) — kiểm Atwater, loại món nguồn đáng ngờ (log ở `docs/food-research/meat.md`). Nguồn và độ tin cậy từng món ở `docs/food-research/`.
+- Gửi AI chỉ danh sách `[id] tên · khẩu phần` (bỏ số dinh dưỡng) để prompt gọn khi bảng lớn.
+- Phản hồi Gemini giả lập cho `npm run dev` (key `mock-key-for-local-testing`, không vào bản build).
+### Sửa (Fixed)
+- Tìm "egg" ra Cà tím (alias "eggplant") thay vì Trứng gà: alias trùng nguyên từ được ưu tiên hơn khớp một phần.
+- Nước mía 180 → 239 kcal/ly 300 ml (Bảng VN 79.6 kcal/100g). Bỏ alias nhầm: "xôi xéo" (xôi mặn), "bạc xỉu" (cà phê sữa đá), "nấm đông cô" (nấm tươi). Thêm alias: thịt kho tàu / hột vịt, trứng hấp vân, cơm gà chiên, 7up / sprite / mirinda / fanta.
+- Sheet thêm món giữ vị trí cuộn cũ khi đổi màn (vd thêm xong từ màn AI dài → màn tìm món trông trống) → cuộn về đầu.
+
 ## [V0.2.5] - 2026-10-06
 ### Thêm (Added)
 - Thêm 53 món vào `foods.vn.ts` (cơm quán, món mặn, bún/miến/mì, bánh mì, món Tây, đồ uống, thịt/cá/trứng đã chín); chi tiết nguồn ở `docs/food-research-log.md`.

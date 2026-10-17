@@ -95,6 +95,28 @@ create table if not exists custom_foods (
   deleted_at timestamptz
 );
 
+-- Món AI nhận ra nhưng chưa có trong bảng món → chờ research rồi bổ sung vào foods.vn.ts
+-- (thêm 2026-10: chạy riêng đoạn này + phần RLS bên dưới nếu các bảng khác đã có)
+create table if not exists food_requests (
+  id uuid primary key,
+  user_id uuid not null references auth.users on delete cascade default auth.uid(),
+  name text not null,
+  name_key text not null,
+  emoji text not null default '🍽️',
+  role text not null default 'other',
+  kind text not null default '',
+  cooking text not null default 'other',
+  per100 jsonb not null,
+  grams double precision not null default 0,
+  times_seen int not null default 1,
+  status text not null default 'pending',
+  food_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+create index if not exists food_requests_user_updated on food_requests (user_id, updated_at);
+
 -- ── Row Level Security ───────────────────────────────────────────────
 alter table profiles enable row level security;
 alter table food_logs enable row level security;
@@ -102,6 +124,7 @@ alter table activity_logs enable row level security;
 alter table weight_logs enable row level security;
 alter table saved_meals enable row level security;
 alter table custom_foods enable row level security;
+alter table food_requests enable row level security;
 
 drop policy if exists "own profile" on profiles;
 create policy "own profile" on profiles
@@ -110,7 +133,7 @@ create policy "own profile" on profiles
 do $$
 declare t text;
 begin
-  foreach t in array array['food_logs','activity_logs','weight_logs','saved_meals','custom_foods'] loop
+  foreach t in array array['food_logs','activity_logs','weight_logs','saved_meals','custom_foods','food_requests'] loop
     execute format('drop policy if exists "own rows" on %I', t);
     execute format(
       'create policy "own rows" on %I for all using (user_id = auth.uid()) with check (user_id = auth.uid())', t);

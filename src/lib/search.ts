@@ -28,6 +28,7 @@ export function searchFoods(query: string, foods: readonly Food[], limit = 40): 
   for (const f of foods) {
     const name = normalize(f.name)
     const hay = haystack(f)
+    const aliasWords = new Set((f.aliases ?? []).flatMap((a) => normalize(a).split(' ')))
     if (!tokens.every((t) => hay.includes(t))) continue
     let score = 0
     if (name === q) score += 100
@@ -35,7 +36,8 @@ export function searchFoods(query: string, foods: readonly Food[], limit = 40): 
     for (const t of tokens) {
       if (new RegExp(`(^|\\s)${escapeRe(t)}`).test(name)) score += 10
       else if (name.includes(t)) score += 4
-      else score += 1 // chỉ khớp alias
+      else if (aliasWords.has(t)) score += 6 // trùng nguyên từ trong alias ("egg" → Trứng gà, không phải "eggplant")
+      else score += 1 // chỉ khớp một phần alias
     }
     if (f.custom) score += 3
     score -= name.length * 0.05 // tên ngắn hơn lên trước

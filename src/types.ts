@@ -140,3 +140,34 @@ export interface Settings {
   geminiKey: string
   geminiModel: string
 }
+
+/** Vai trò của một thành phần trong bữa (AI nhận diện từ ảnh). */
+export type FoodRole = 'carb' | 'protein' | 'veg' | 'fat' | 'sauce' | 'drink' | 'other'
+export type CookingMethod = 'raw' | 'boiled' | 'steamed' | 'grilled' | 'fried' | 'stir_fried' | 'braised' | 'soup' | 'other'
+
+/**
+ * Món AI nhận ra nhưng chưa có trong bảng món → chờ research (agent food-researcher) rồi thêm vào DB.
+ * Sync qua bảng Supabase `food_requests`.
+ */
+export interface FoodRequest {
+  id: string
+  name: string
+  /** tên không dấu, dùng để gộp các lần gặp cùng món */
+  nameKey: string
+  emoji: string
+  role: FoodRole
+  /** loại cụ thể AI mô tả, vd "thịt heo ba chỉ" */
+  kind: string
+  cooking: CookingMethod
+  /** ước lượng của AI (trên 100g) — chỉ để tham khảo khi research */
+  per100: Nutrients
+  /** gram lần gần nhất */
+  grams: number
+  timesSeen: number
+  status: 'pending' | 'done' | 'dismissed'
+  /** id món trong bảng sau khi đã bổ sung */
+  foodId: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}

@@ -1,4 +1,10 @@
-import type { Food, FoodCategory, Serving } from '@/types'
+import type { Food, FoodCategory } from '@/types'
+import { dish, food, s } from './foodHelpers'
+import { MEAT_FOODS } from './foods/meat'
+import { PRODUCE_FOODS } from './foods/produce'
+import { VN_RICE_FOODS } from './foods/vn-rice'
+import { VN_NOODLE_FOODS } from './foods/vn-noodle'
+import { WEST_DRINK_FOODS } from './foods/west-drinks'
 
 /**
  * Bảng món ăn mặc định. Giá trị tham khảo từ Bảng thành phần thực phẩm Việt Nam (Viện Dinh dưỡng)
@@ -6,61 +12,7 @@ import type { Food, FoodCategory, Serving } from '@/types'
  * Nguyên liệu: số liệu trên 100g. Đồ uống: 100ml ≈ 100g.
  */
 
-type N5 = [kcal: number, protein: number, carbs: number, fat: number, fiber: number]
-
-function food(
-  id: string,
-  name: string,
-  emoji: string,
-  category: FoodCategory,
-  [kcal, protein, carbs, fat, fiber]: N5,
-  servings: Serving[] = [],
-  aliases: string[] = [],
-): Food {
-  return {
-    id,
-    name,
-    emoji,
-    category,
-    per100: { kcal, protein, carbs, fat, fiber },
-    servings: [...servings, { label: '100g', grams: 100 }].filter(
-      (s, i, arr) => arr.findIndex((x) => x.grams === s.grams && x.label === s.label) === i,
-    ),
-    defaultGrams: servings[0]?.grams ?? 100,
-    aliases,
-  }
-}
-
-/** Món phức hợp: nhập theo 1 phần ăn, tự quy ra trên 100g. */
-function dish(
-  id: string,
-  name: string,
-  emoji: string,
-  serving: string,
-  grams: number,
-  [kcal, protein, carbs, fat, fiber]: N5,
-  aliases: string[] = [],
-  category: FoodCategory = 'dish',
-): Food {
-  const r = 100 / grams
-  return {
-    id,
-    name,
-    emoji,
-    category,
-    per100: { kcal: kcal * r, protein: protein * r, carbs: carbs * r, fat: fat * r, fiber: fiber * r },
-    servings: [
-      { label: serving, grams },
-      { label: `½ ${serving.replace(/^1 /, '')}`, grams: Math.round(grams / 2) },
-    ],
-    defaultGrams: grams,
-    aliases,
-  }
-}
-
-const s = (label: string, grams: number): Serving => ({ label, grams })
-
-export const FOODS: Food[] = [
+const BASE: Food[] = [
   // ── Tinh bột ─────────────────────────────────────────
   food('com-trang', 'Cơm trắng', '🍚', 'carb', [130, 2.7, 28.2, 0.3, 0.4], [s('1 chén', 150), s('1 chén đầy', 200), s('½ chén', 75)], ['com', 'rice']),
   food('com-gao-lut', 'Cơm gạo lứt', '🍚', 'carb', [123, 2.7, 25.6, 1.0, 1.6], [s('1 chén', 150)], ['brown rice']),
@@ -207,7 +159,7 @@ export const FOODS: Food[] = [
   food('gia-do', 'Giá đỗ', '🌱', 'veg', [30, 3, 5.9, 0.2, 1.8], [s('1 nắm', 50)], ['gia']),
   food('rau-song', 'Rau sống / xà lách', '🥗', 'veg', [15, 1.4, 2.9, 0.2, 1.3], [s('1 đĩa', 100)], ['xa lach', 'salad', 'lettuce']),
   food('dau-que', 'Đậu que', '🫛', 'veg', [31, 1.8, 7, 0.2, 2.7], [s('1 phần', 150)], ['green bean']),
-  food('nam', 'Nấm tươi', '🍄', 'veg', [22, 3.1, 3.3, 0.3, 1], [s('1 phần', 100)], ['mushroom', 'nam rom', 'nam dong co']),
+  food('nam', 'Nấm tươi', '🍄', 'veg', [22, 3.1, 3.3, 0.3, 1], [s('1 phần', 100)], ['mushroom', 'nam rom']),
   food('bi-do', 'Bí đỏ', '🎃', 'veg', [26, 1, 6.5, 0.1, 0.5], [s('1 phần', 150)], ['pumpkin']),
   food('dau-bap', 'Đậu bắp', '🌿', 'veg', [33, 1.9, 7.5, 0.2, 3.2], [s('1 phần', 100)], ['okra']),
   food('bi-dao', 'Bí đao', '🥒', 'veg', [13, 0.4, 3, 0.2, 2.9], [s('1 phần', 200)]),
@@ -253,19 +205,19 @@ export const FOODS: Food[] = [
   dish('mi-quang', 'Mì Quảng', '🍜', '1 tô', 450, [550, 28, 65, 18, 2]),
   dish('com-tam-suon', 'Cơm tấm sườn', '🍛', '1 đĩa', 400, [650, 30, 80, 22, 2]),
   dish('com-tam-sbc', 'Cơm tấm sườn bì chả', '🍛', '1 đĩa', 450, [800, 38, 88, 32, 2]),
-  dish('com-ga', 'Cơm gà xối mỡ', '🍛', '1 đĩa', 400, [750, 35, 80, 32, 1.5]),
+  dish('com-ga', 'Cơm gà xối mỡ', '🍛', '1 đĩa', 400, [750, 35, 80, 32, 1.5], ['com ga chien']),
   dish('com-chien', 'Cơm chiên dương châu', '🍳', '1 đĩa', 350, [600, 18, 80, 22, 2], ['com rang']),
   dish('com-van-phong', 'Cơm văn phòng (cơm + mặn + rau)', '🍱', '1 hộp', 500, [700, 30, 90, 22, 3], ['com hop', 'com binh dan']),
   dish('banh-mi-thit', 'Bánh mì thịt', '🥖', '1 ổ', 200, [450, 18, 55, 17, 2.5], ['banh mi pate']),
   dish('banh-mi-op-la', 'Bánh mì ốp la (2 trứng)', '🍳', '1 phần', 190, [420, 18, 50, 16, 2]),
-  dish('xoi-man', 'Xôi mặn / xôi gà', '🍙', '1 gói', 250, [500, 18, 75, 14, 1.5], ['xoi xeo', 'xoi thit']),
+  dish('xoi-man', 'Xôi mặn / xôi gà', '🍙', '1 gói', 250, [500, 18, 75, 14, 1.5], ['xoi thit']),
   dish('banh-cuon', 'Bánh cuốn', '🥟', '1 đĩa', 300, [400, 15, 60, 11, 2]),
   dish('goi-cuon', 'Gỏi cuốn', '🌯', '1 cuốn', 80, [90, 5, 13, 2, 1], ['spring roll']),
   dish('cha-gio', 'Chả giò', '🥟', '1 cuốn', 40, [110, 4, 8, 7, 0.5], ['nem ran']),
   dish('banh-xeo', 'Bánh xèo', '🥞', '1 cái', 200, [400, 12, 35, 23, 2]),
   dish('chao', 'Cháo gà / cháo thịt', '🥣', '1 tô', 400, [250, 14, 38, 5, 0.5]),
   dish('banh-bao', 'Bánh bao nhân thịt', '🥟', '1 cái', 150, [330, 11, 50, 9, 1.5]),
-  dish('thit-kho-trung', 'Thịt kho trứng', '🍲', '1 phần', 200, [450, 28, 8, 34, 0]),
+  dish('thit-kho-trung', 'Thịt kho trứng', '🍲', '1 phần', 200, [450, 28, 8, 34, 0], ['thit kho tau', 'thit kho hot vit']),
   dish('ca-kho', 'Cá kho tộ', '🐟', '1 phần', 150, [250, 22, 8, 14, 0]),
   dish('canh-chua', 'Canh chua cá', '🥘', '1 tô', 300, [120, 12, 8, 4, 1.5]),
   dish('canh-rau', 'Canh rau', '🥣', '1 chén', 250, [40, 2, 5, 1.5, 1.5], ['canh bi', 'canh cai']),
@@ -292,7 +244,7 @@ export const FOODS: Food[] = [
   dish('suon-xao-chua-ngot', 'Sườn xào chua ngọt', '🍖', '1 phần', 150, [350, 18, 22, 21, 0.5], ['suon chua ngot']),
   dish('thit-rang', 'Thịt ba chỉ rang', '🥓', '1 phần', 80, [250, 12, 4, 20.5, 0], ['thit rang chay canh', 'thit heo rang']),
   dish('ga-kho-gung', 'Gà kho gừng / sả', '🍗', '1 phần', 150, [285, 26, 6, 17, 0.2], ['ga kho', 'ga kho sa']),
-  dish('cha-trung', 'Chả trứng hấp / chiên', '🍳', '1 miếng', 100, [200, 12, 5, 14.5, 0.3], ['cha trung chien']),
+  dish('cha-trung', 'Chả trứng hấp / chiên', '🍳', '1 miếng', 100, [200, 12, 5, 14.5, 0.3], ['cha trung chien', 'trung hap van', 'trung hap thit']),
   dish('trung-op-la-1', 'Trứng ốp la (1 quả)', '🍳', '1 quả', 46, [90, 6.3, 0.4, 6.8, 0], ['trung chien 1 qua', 'fried egg']),
   dish('muc-xao', 'Mực xào rau', '🦑', '1 phần', 150, [215, 19, 8, 11.5, 1], ['muc xao dua', 'muc xao hanh']),
   dish('tom-rim', 'Tôm rim mặn ngọt', '🦐', '1 phần', 100, [170, 21, 8, 5.5, 0], ['tom rim thit']),
@@ -321,13 +273,13 @@ export const FOODS: Food[] = [
   dish('khoai-tay-chien', 'Khoai tây chiên (cỡ vừa)', '🍟', '1 phần', 110, [320, 4, 43, 15, 4], ['french fries', 'fries'], 'snack'),
 
   // ── Đồ uống ──────────────────────────────────────────
-  dish('cf-sua-da', 'Cà phê sữa đá', '☕', '1 ly', 200, [130, 2.5, 22, 3.5, 0], ['ca phe sua', 'bac xiu'], 'drink'),
+  dish('cf-sua-da', 'Cà phê sữa đá', '☕', '1 ly', 200, [130, 2.5, 22, 3.5, 0], ['ca phe sua'], 'drink'),
   dish('cf-den-duong', 'Cà phê đen có đường', '☕', '1 ly', 200, [40, 0.3, 10, 0, 0], ['ca phe den'], 'drink'),
   dish('cf-den', 'Cà phê đen không đường', '☕', '1 ly', 200, [4, 0.3, 0, 0, 0], ['americano'], 'drink'),
   dish('tra-sua', 'Trà sữa trân châu', '🧋', '1 ly', 500, [450, 4, 75, 15, 0.5], ['milk tea'], 'drink'),
-  dish('nuoc-ngot', 'Nước ngọt', '🥤', '1 lon', 330, [140, 0, 35, 0, 0], ['coca', 'pepsi', 'soda'], 'drink'),
+  dish('nuoc-ngot', 'Nước ngọt', '🥤', '1 lon', 330, [140, 0, 35, 0, 0], ['coca', 'pepsi', 'soda', '7up', 'sprite', 'mirinda', 'fanta'], 'drink'),
   dish('bia', 'Bia', '🍺', '1 lon', 330, [145, 1.5, 12, 0, 0], ['beer'], 'drink'),
-  dish('nuoc-mia', 'Nước mía', '🥤', '1 ly', 300, [180, 0.5, 45, 0, 0], [], 'drink'),
+  dish('nuoc-mia', 'Nước mía', '🥤', '1 ly', 300, [239, 0.6, 60.6, 0, 0], [], 'drink'),
   dish('nuoc-cam', 'Nước cam vắt', '🍊', '1 ly', 250, [112, 1.7, 26, 0.5, 0.5], ['orange juice'], 'drink'),
   dish('bac-xiu', 'Bạc xỉu', '☕', '1 ly', 250, [160, 5.5, 21, 6, 0], ['bac xiu da', 'ca phe sua nhieu'], 'drink'),
   dish('tra-dao', 'Trà đào cam sả', '🍑', '1 ly', 450, [180, 0.5, 44, 0, 0.5], ['tra dao', 'peach tea'], 'drink'),
@@ -347,6 +299,9 @@ export const FOODS: Food[] = [
   food('kem', 'Kem (vanilla)', '🍨', 'snack', [207, 3.5, 23.6, 11, 0.7], [s('1 viên', 66), s('1 ly', 100)], ['ice cream']),
   food('dau-an', 'Dầu ăn', '🫗', 'snack', [884, 0, 0, 100, 0], [s('1 muỗng canh', 14), s('1 muỗng cà phê', 5)], ['oil', 'mo']),
 ]
+
+/** Bảng món đầy đủ: bảng gốc + các file theo nhóm (mỗi agent research ghi vào file nhóm riêng). */
+export const FOODS: Food[] = [...BASE, ...MEAT_FOODS, ...PRODUCE_FOODS, ...VN_RICE_FOODS, ...VN_NOODLE_FOODS, ...WEST_DRINK_FOODS]
 
 export const CATEGORY_LABEL: Record<FoodCategory, string> = {
   carb: 'Tinh bột',

@@ -45,8 +45,9 @@ describe('search', () => {
     const ids = new Set(FOODS.map((f) => f.id))
     expect(ids.size).toBe(FOODS.length)
     // kcal khai báo phải gần với 4P + 4(C − xơ) + 2·xơ + 9F. Món rất ít calo (rau) cho sai số tuyệt đối.
-    // Bia có cồn (7 kcal/g) nên bỏ qua.
-    const off = FOODS.filter((f) => f.id !== 'bia').filter((f) => {
+    // Đồ uống có cồn (7 kcal/g) nên bỏ qua.
+    const alcohol = new Set(['bia', 'vang-do', 'vang-trang', 'soju', 'ruou-manh'])
+    const off = FOODS.filter((f) => !alcohol.has(f.id)).filter((f) => {
       const { kcal, protein, carbs, fat, fiber } = f.per100
       const est = protein * 4 + (carbs - fiber) * 4 + fiber * 2 + fat * 9
       return kcal < 60 ? Math.abs(est - kcal) > 12 : Math.abs(est - kcal) / kcal > 0.15

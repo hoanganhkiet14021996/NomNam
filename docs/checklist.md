@@ -29,6 +29,12 @@
 | **AI** | Gõ mô tả → tách món kèm gram, kcal, P/C/F/xơ | ❌ | ✅ |
 | | Chụp ảnh → nhiều món | ⚠️ 1 món, lỗi | ✅ |
 | | Màn kiểm tra: sửa tên/gram, bỏ món, đánh dấu ước lượng thô | ❌ | ✅ |
+| | Khớp món với bảng → kcal/macro tính từ DB, AI chỉ nhận diện + ước gram | ❌ | ✅ (chưa thử key thật) |
+| | Thành phần có vai trò / loại cụ thể / cách nấu, tách dầu ăn ẩn | ❌ | ✅ (chưa thử key thật) |
+| | AI hỏi lại khi phân vân (nút bấm đổi món/gram) | ❌ | ✅ (chưa thử key thật) |
+| | Top 3 món trong bảng để chọn lại | ❌ | ✅ |
+| | Ghi nhớ khẩu phần quen (gợi ý + gửi kèm prompt) | ❌ | ✅ |
+| | Món chờ bổ sung (sync Supabase `food_requests`) → research → cập nhật bữa cũ | ❌ | ✅ (cần chạy SQL bảng mới) |
 | **Vận động** | 12 môn (đá banh, gym, chạy, đạp xe, bơi, cầu lông, pickleball…) × cường độ × thời gian → kcal (MET) | ❌ | ✅ |
 | | Nhập kcal tay (từ đồng hồ) | ❌ | ✅ |
 | **Mục tiêu** | TDEE Mifflin-St Jeor, chọn giảm mỡ / giữ cân / tăng cơ | ⚠️ không lưu | ✅ |

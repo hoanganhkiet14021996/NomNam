@@ -11,7 +11,7 @@ vi.mock('idb-keyval', () => {
 })
 
 import { useAppStore, type NewFoodLog } from './useAppStore'
-import { activitiesForDate, logsForDate, summarizeDay } from './derive'
+import { activitiesForDate, logsForDate, pendingRequests, portionHints, summarizeDay, usualPortions } from './derive'
 import { DEFAULT_PROFILE } from '@/data/defaults'
 import { FOODS } from '@/data/foods.vn'
 import { calcTargets } from '@/lib/nutrition'
@@ -205,5 +205,64 @@ describe('dữ liệu món ăn có sẵn', () => {
       // kcal không thể thấp hơn nhiều so với macro cộng lại (4/4/9)
       expect(kcal, f.name).toBeGreaterThanOrEqual((protein * 4 + carbs * 4 + fat * 9) * 0.6)
     }
+  })
+})
+
+describe('món chờ bổ sung & khẩu phần quen', () => {
+  const req = {
+    name: 'Chả cá thác lác',
+    emoji: '🐟',
+    role: 'protein' as const,
+    kind: 'chả cá',
+    cooking: 'fried' as const,
+    per100: { kcal: 240, protein: 16, carbs: 10, fat: 15, fiber: 0 },
+    grams: 80,
+  }
+
+  it('ghi món chờ → vào outbox; gặp lại cùng tên (khác dấu/hoa) → gộp, tăng số lần', () => {
+    store().noteFoodRequests([req])
+    store().noteFoodRequests([{ ...req, name: 'cha ca THAC LAC', grams: 100 }])
+    const list = pendingRequests(store().foodRequests)
+    expect(list).toHaveLength(1)
+    expect(list[0].timesSeen).toBe(2)
+    expect(list[0].name).toBe('Chả cá thác lác')
+    expect(list[0].grams).toBe(100)
+    expect(store().outbox[`food_requests:${list[0].id}`]).toBe(true)
+  })
+
+  it('bỏ qua → không còn trong danh sách chờ', () => {
+    store().noteFoodRequests([req])
+    const [r] = pendingRequests(store().foodRequests)
+    store().setFoodRequestStatus(r.id, 'dismissed')
+    expect(pendingRequests(store().foodRequests)).toHaveLength(0)
+  })
+
+  it('relink: log AI cùng tên được tính lại theo bảng; Hoàn tác trả lại như cũ', () => {
+    const food = FOODS.find((f) => f.id === 'cha-ca-chien')!
+    const [a] = store().addFoodLogs([log({ name: 'Chả cá thác lác', foodId: null, source: 'ai', grams: 200, kcal: 999 })])
+    const [other] = store().addFoodLogs([log({ name: 'Chả cá thác lác', foodId: null, source: 'quick', grams: 0, kcal: 300 })])
+    const before = store().relinkLogs('cha ca thac lac', food)
+    expect(before.map((l) => l.id)).toEqual([a])
+    expect(store().foodLogs[a].foodId).toBe(food.id)
+    expect(store().foodLogs[a].kcal).toBeCloseTo(food.per100.kcal * 2)
+    expect(store().foodLogs[other].kcal).toBe(300)
+    store().restoreFoodLogs(before)
+    expect(store().foodLogs[a].kcal).toBe(999)
+    expect(store().foodLogs[a].foodId).toBeNull()
+  })
+
+  it('khẩu phần quen = trung vị gram các lần ăn, bỏ nhập nhanh và món đã xoá', () => {
+    const ids = store().addFoodLogs([
+      log({ foodId: 'com-trang', grams: 150 }),
+      log({ foodId: 'com-trang', grams: 200 }),
+      log({ foodId: 'com-trang', grams: 250 }),
+      log({ foodId: 'com-trang', grams: 900 }),
+    ])
+    store().removeFoodLog(ids[3])
+    store().addFoodLogs([log({ foodId: null, name: 'Bánh lạ', source: 'quick', grams: 0 })])
+    const u = usualPortions(store().foodLogs)
+    expect(u['com-trang']).toMatchObject({ grams: 200, count: 3 })
+    expect(Object.keys(u)).toEqual(['com-trang'])
+    expect(portionHints(u)[0]).toMatchObject({ grams: 200 })
   })
 })

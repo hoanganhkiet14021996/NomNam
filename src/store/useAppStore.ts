@@ -2,10 +2,13 @@ import { useSyncExternalStore } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { del, get, set } from 'idb-keyval'
-import type { ActivityLog, Food, FoodLog, MealType, Profile, SavedMeal, SavedMealItem, WeightLog } from '@/types'
+import type { ActivityLog, Food, FoodLog, FoodRequest, MealType, Profile, SavedMeal, SavedMealItem, WeightLog } from '@/types'
 import { nowIso } from '@/lib/date'
+import { scaleNutrients } from '@/lib/nutrition'
+import { normalize } from '@/lib/search'
 import { uuid } from '@/lib/id'
 import { DEFAULT_PROFILE } from '@/data/defaults'
+import { relinkableLogs } from './derive'
 
 /** Tên bảng Supabase ↔ key trong store. */
 export const TABLES = {
@@ -14,11 +17,14 @@ export const TABLES = {
   weight_logs: 'weightLogs',
   saved_meals: 'savedMeals',
   custom_foods: 'customFoods',
+  food_requests: 'foodRequests',
 } as const
 export type TableName = keyof typeof TABLES | 'profiles'
 type CollectionKey = (typeof TABLES)[keyof typeof TABLES]
 
 export type NewFoodLog = Omit<FoodLog, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
+/** Thông tin AI ước lượng về một món chưa có trong bảng. */
+export type NewFoodRequest = Pick<FoodRequest, 'name' | 'emoji' | 'role' | 'kind' | 'cooking' | 'per100' | 'grams'>
 export type NewActivityLog = Omit<ActivityLog, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 
 export interface DataState {
@@ -29,6 +35,7 @@ export interface DataState {
   weightLogs: Record<string, WeightLog>
   savedMeals: Record<string, SavedMeal>
   customFoods: Record<string, Food>
+  foodRequests: Record<string, FoodRequest>
   /** Các bản ghi chưa đẩy lên Supabase: key = `${table}:${id}` */
   outbox: Record<string, true>
   lastPulledAt: string | null
@@ -58,6 +65,17 @@ interface Actions {
   removeCustomFood: (id: string) => void
   restoreCustomFood: (id: string) => void
 
+  /** Ghi món AI chưa khớp bảng vào danh sách chờ (gộp theo tên không dấu, tăng số lần gặp). */
+  noteFoodRequests: (items: NewFoodRequest[]) => void
+  setFoodRequestStatus: (id: string, status: FoodRequest['status'], foodId?: string | null) => void
+  /**
+   * Món đã có trong bảng → cập nhật các log cũ (AI ghi, chưa gắn món, cùng tên) theo số liệu của bảng.
+   * Trả về bản trước khi sửa để Hoàn tác.
+   */
+  relinkLogs: (nameKey: string, food: Food) => FoodLog[]
+  /** Ghi đè nguyên bản ghi log (dùng cho Hoàn tác relink). */
+  restoreFoodLogs: (logs: FoodLog[]) => void
+
   updateProfile: (patch: Partial<Profile>) => void
   completeOnboarding: () => void
 
@@ -79,6 +97,7 @@ const EMPTY_DATA: DataState = {
   weightLogs: {},
   savedMeals: {},
   customFoods: {},
+  foodRequests: {},
   outbox: {},
   lastPulledAt: null,
   ownerId: null,
@@ -206,6 +225,50 @@ export const useAppStore = create<AppState>()(
         },
         removeCustomFood: (id) => softDelete('customFoods', 'custom_foods', id, true),
         restoreCustomFood: (id) => softDelete('customFoods', 'custom_foods', id, false),
+
+        noteFoodRequests: (items) => {
+          const now = nowIso()
+          for (const it of items) {
+            const nameKey = normalize(it.name)
+            if (!nameKey) continue
+            const existing = Object.values(getState().foodRequests).find((r) => !r.deletedAt && r.nameKey === nameKey)
+            if (existing) {
+              put('foodRequests', 'food_requests', {
+                ...existing,
+                ...it,
+                name: existing.name,
+                timesSeen: existing.timesSeen + 1,
+                updatedAt: now,
+              })
+            } else {
+              put('foodRequests', 'food_requests', {
+                ...it,
+                id: uuid(),
+                nameKey,
+                timesSeen: 1,
+                status: 'pending',
+                foodId: null,
+                createdAt: now,
+                updatedAt: now,
+                deletedAt: null,
+              })
+            }
+          }
+        },
+        setFoodRequestStatus: (id, status, foodId) => {
+          const cur = getState().foodRequests[id]
+          if (cur) put('foodRequests', 'food_requests', { ...cur, status, foodId: foodId === undefined ? cur.foodId : foodId, updatedAt: nowIso() })
+        },
+        relinkLogs: (nameKey, food) => {
+          const before = relinkableLogs(getState().foodLogs, nameKey)
+          for (const l of before) {
+            getState().updateFoodLog(l.id, { ...scaleNutrients(food.per100, l.grams), foodId: food.id, name: food.name, emoji: food.emoji })
+          }
+          return before
+        },
+        restoreFoodLogs: (logs) => {
+          for (const l of logs) put('foodLogs', 'food_logs', { ...l, updatedAt: nowIso() })
+        },
 
         updateProfile: (patch) =>
           setState((s) => ({

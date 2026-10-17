@@ -51,6 +51,7 @@ function AddSheetBody() {
   const foodLogs = useAppStore((s) => s.foodLogs)
 
   const [screen, setScreen] = useState<Screen>({ kind: 'list' })
+  const scrollRef = useRef<HTMLDivElement>(null)
   const [added, setAdded] = useState<string[]>([])
 
   /** Ghi log + phản hồi ngay; sheet vẫn mở để thêm tiếp (multi-add). */
@@ -102,7 +103,7 @@ function AddSheetBody() {
           meal={meal}
           onBack={back}
           onConfirm={(items) => {
-            log(items.map((it) => ({ ...it, foodId: null, servingLabel: null, source: 'ai' as const })))
+            log(items.map((it) => ({ ...it, servingLabel: null, source: 'ai' as const })))
             setView('search')
           }}
         />
@@ -147,8 +148,9 @@ function AddSheetBody() {
           <X />
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <AnimatePresence mode="wait" initial={false}>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {/* Đổi màn (vd thêm xong từ màn AI dài) → cuộn về đầu, không để màn mới hiện ở vị trí cuộn cũ */}
+        <AnimatePresence mode="wait" initial={false} onExitComplete={() => scrollRef.current?.scrollTo({ top: 0 })}>
           <motion.div key={view + screen.kind} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
             {body}
           </motion.div>

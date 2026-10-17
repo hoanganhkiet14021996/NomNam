@@ -15,6 +15,7 @@ import { useTargets } from '@/store/hooks'
 import { useAppStore } from '@/store/useAppStore'
 import type { Palette, ThemePref } from '@/types'
 import { AccountCard } from './AccountCard'
+import { FoodRequestsCard } from './FoodRequests'
 import { ProfileForm } from './ProfileForm'
 
 export function GoalsView() {
@@ -102,6 +103,10 @@ export function GoalsView() {
 
         <Section title="AI (Gemini)">
           <GeminiSettings />
+        </Section>
+
+        <Section title="Món chờ bổ sung">
+          <FoodRequestsCard />
         </Section>
 
         <Section title="Giao diện">

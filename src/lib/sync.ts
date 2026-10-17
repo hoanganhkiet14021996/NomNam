@@ -31,6 +31,14 @@ const PAGE = 1000
 /** Lùi mốc pull một chút để không sót bản ghi do lệch đồng hồ giữa các thiết bị. */
 const PULL_MARGIN_MS = 10 * 60 * 1000
 
+/**
+ * Bảng thêm sau (cần chạy SQL mới trong Supabase). Chưa tạo bảng → bỏ qua bảng đó, không làm hỏng
+ * cả vòng sync; bản ghi vẫn nằm trong outbox và được đẩy lên khi bảng đã có.
+ */
+const OPTIONAL_TABLES = new Set<TableName>(['food_requests'])
+const isMissingTable = (e: { code?: string; message?: string }) =>
+  e.code === 'PGRST205' || e.code === '42P01' || /could not find the table|does not exist/i.test(e.message ?? '')
+
 const snake = (k: string) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 const camel = (k: string) => k.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())
 
@@ -75,7 +83,10 @@ async function pull(userId: string) {
       let q = sb.from(table).select('*').order('updated_at').range(from, from + PAGE - 1)
       if (since) q = q.gt('updated_at', since)
       const { data, error } = await q
-      if (error) throw error
+      if (error) {
+        if (OPTIONAL_TABLES.has(table) && isMissingTable(error)) break
+        throw error
+      }
       const rows = data.map((r) => {
         const o = fromRow(r)
         if (table === 'custom_foods') o.custom = true
@@ -119,7 +130,10 @@ async function push(userId: string) {
     }
     if (!rows.length) continue
     const { error } = await sb.from(table).upsert(rows, { onConflict: 'id' })
-    if (error) throw error
+    if (error) {
+      if (OPTIONAL_TABLES.has(table) && isMissingTable(error)) continue
+      throw error
+    }
 
     // Chỉ xoá khỏi outbox nếu bản ghi không bị sửa tiếp trong lúc đang gửi
     const now = useAppStore.getState()

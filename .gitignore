@@ -13,6 +13,9 @@ dist-ssr
 dev-dist
 *.local
 
+# Danh sách món chờ bổ sung tải từ Supabase (npm run food-requests)
+food-requests.json
+
 # Secrets
 .env
 .env.*

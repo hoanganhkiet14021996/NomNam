@@ -26,7 +26,11 @@ Vite 8 · React 19 · TypeScript 6 · Tailwind 3 (giữ v3, shadcn chưa hợp v
 src/
   App.tsx                  shell: hydrate store, theme, lazy WeekView, BottomNav, sheets
   types.ts                 mọi kiểu dữ liệu (FoodLog, ActivityLog, Profile, …)
-  data/foods.vn.ts         ~110 món VN/gym (per 100g + khẩu phần); food() cho nguyên liệu, dish() cho món theo phần
+  data/foods.vn.ts         bảng gốc ~250 món + gom `FOODS` từ các file nhóm; food() cho nguyên liệu, dish() cho món theo phần
+  data/foodHelpers.ts      food()/dish()/s() dùng chung cho mọi file bảng món
+  data/foods/*.ts          bảng món theo nhóm (meat, produce, vn-rice, vn-noodle, west-drinks) ~630 món tổng; meat.ts SINH TỰ ĐỘNG từ scripts/specs/meat.mjs; nguồn từng món ở docs/food-research/<nhóm>.md
+  scripts/foods-bulk.mjs   nhập hàng loạt nguyên liệu từ USDA / Matvaretabellen / Bảng VN (Viện Dinh dưỡng) — 0 token AI, tự kiểm Atwater + độ lệch nguồn
+  scripts/food-requests.mjs tải danh sách "món chờ bổ sung" từ Supabase
   data/activities.ts       MET theo Compendium (nhẹ/vừa/mạnh)
   data/defaults.ts         DEFAULT_PROFILE (lean bulk, 50% eat-back)
   lib/nutrition.ts         BMR, TDEE, targets, scale/sum, dailyBudget, dayAdherence, fmt  ← logic thuần, có test
@@ -35,7 +39,9 @@ src/
   lib/search.ts            tìm không dấu ("uc ga" → Ức gà), alias
   lib/sync.ts              local-first sync Supabase (pull → push outbox), auth helpers
   lib/supabase.ts          client = null nếu .env chưa hợp lệ → chế độ chỉ lưu máy
-  lib/ai/gemini.ts         analyzeMeal (ảnh/chữ → items[]), responseJsonSchema + zod, prepareImage
+  lib/ai/gemini.ts         analyzeMeal (ảnh/chữ → thành phần có vai trò/loại/cách nấu/foodId/candidates/question), responseJsonSchema + zod, prepareImage
+  lib/ai/match.ts          khớp món AI ↔ bảng (id / tên-alias chính xác), top 3 ứng viên, trả lời câu hỏi, khẩu phần quen  ← có test
+  lib/ai/mock.ts           phản hồi Gemini giả lập cho dev (key `mock-key-for-local-testing`)
   lib/export.ts            xuất CSV / sao lưu & khôi phục JSON
   store/useAppStore.ts     zustand persist (IndexedDB): dữ liệu + outbox + actions
   store/settings.ts        theme, Gemini key/model (localStorage, KHÔNG sync)
@@ -66,7 +72,7 @@ src/
 - Sync: `syncNow()` = pull (updated_at > lastPulledAt − 10 phút, phân trang 1000) rồi push outbox (upsert). Last-write-wins theo `updatedAt`. Timestamp từ Postgres được chuẩn hoá về ISO `…Z` trước khi so sánh chuỗi.
 - Đăng nhập lần đầu trên máy: `_enqueueAll()` để đẩy dữ liệu local lên; đổi user khác → xoá dữ liệu local.
 - Project Supabase **dùng chung** với app Personal CFO (bảng `fin_*`, cùng tài khoản đăng nhập). Bảng NomNam không có tiền tố — khi thêm bảng mới cho NomNam, tránh trùng tên với app khác; Redirect URLs phải chứa URL của cả hai app.
-- Schema + RLS: `supabase_schema.sql` (bảng profiles, food_logs, activity_logs, weight_logs, saved_meals, custom_foods). Cột camelCase ↔ snake_case chuyển tự động trong `sync.ts` — thêm field mới thì thêm cột cùng tên dạng snake_case.
+- Schema + RLS: `supabase_schema.sql` (bảng profiles, food_logs, activity_logs, weight_logs, saved_meals, custom_foods, food_requests). `food_requests` là bảng "tuỳ chọn" trong `sync.ts`: chưa tạo trên Supabase thì sync bỏ qua bảng đó, không lỗi. Cột camelCase ↔ snake_case chuyển tự động trong `sync.ts` — thêm field mới thì thêm cột cùng tên dạng snake_case.
 - Auth (`lib/auth.ts`): **tên + PIN 6 số**, không dùng email thật. Tên → email ảo `<tên-không-dấu>@namnguyen27.app`, PIN dùng thẳng làm mật khẩu. Supabase phải **tắt "Confirm email"** (app kiểm tra `mailer_autoconfirm` trước khi signUp để không gửi mail tới địa chỉ ảo). Đổi quy tắc tên → email sẽ làm hỏng tài khoản cũ.
 
 ## Quy ước UI
@@ -85,7 +91,7 @@ src/
 ## Môi trường
 
 - `.env` (không commit — đã có trong .gitignore), mẫu ở `.env.example`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (key `sb_publishable_…`; tên cũ `VITE_SUPABASE_ANON_KEY` vẫn nhận). Chỉ biến `VITE_*` được Vite đọc — `NEXT_PUBLIC_*` không dùng được. Project: `jaekhiuaybhsqtfsnuae.supabase.co`. Biến `VITE_*` được nhúng vào bản build lúc build (publishable key vốn công khai, dữ liệu được bảo vệ bằng RLS).
-- Gemini API key do người dùng nhập trong app (tab Mục tiêu hoặc lần đầu dùng AI), lưu localStorage của từng thiết bị. Model mặc định `gemini-2.5-flash`, đổi được.
+- Gemini API key do người dùng nhập trong app (tab Mục tiêu hoặc lần đầu dùng AI), lưu localStorage của từng thiết bị. Model mặc định `gemini-3.6-flash` (đổi từ `gemini-2.5-flash` ngày 2026-10-17 vì key mới bị 404 với 2.5), đổi được.
 - Windows + PowerShell 5.1: khi sửa file có tiếng Việt bằng script, đọc/ghi bằng `[IO.File]::ReadAllText(..., UTF8)` — `Get-Content` mặc định làm hỏng dấu.
 
 ## Tên app & thương hiệu
@@ -118,6 +124,9 @@ src/
 
 - Làm **local trước** (`npm run dev`, localhost:5173, dùng `.env` nên vẫn nối Supabase thật — dùng tài khoản test để khỏi lẫn dữ liệu). Chỉ deploy khi người dùng nói "deploy": `npm run check` → commit → `git push` → Actions tự deploy. Không sửa file trực tiếp trên web GitHub (local sẽ lệch repo).
 - Đăng nhập hiện **không bắt buộc**: không có trang đăng nhập riêng. Có 2 chỗ: màn chào `Onboarding.tsx` ("Đã dùng trên máy khác? Đăng nhập…", chỉ hiện khi máy chưa có dữ liệu, `onboarded=false`) và thẻ tài khoản `AccountCard.tsx` ở tab Mục tiêu. Muốn thấy lại màn chào khi test: xoá dữ liệu site (DevTools → Application → Clear site data) hoặc cửa sổ ẩn danh.
+- **Món chờ bổ sung** (AI gặp món chưa có trong bảng): người dùng chạy `npm run food-requests` (tự nhập tên + PIN, ghi ra `food-requests.json` — không commit) → gọi agent `food-researcher` research và thêm món vào file nhóm phù hợp trong `src/data/foods/` (không sửa `foods.vn.ts` gốc), **tên hoặc alias phải khớp tên trong request** để app tự nhận ra → trong app bấm "Cập nhật N bữa".
+- **Mở rộng bảng món (rẻ token):** KHÔNG cho agent tra web từng món. Nguyên liệu → viết/sửa spec trong `scripts/specs/<nhóm>.mjs` (chọn tên + id nguồn) rồi chạy `FOOD_DATA_DIR=<thư mục> node scripts/foods-bulk.mjs scripts/specs/<nhóm>.mjs` (dữ liệu: `cache.json` gộp USDA SR + Foundation + Matvaretabellen và `vdd/all.json` từ API `https://viendinhduong.vn/api/fe/foodNatunal/getPageFoodData?page=1&pageSize=1000`). Món Việt phức hợp → tính từ công thức (nguyên liệu × gram), agent chỉ đề xuất công thức. Chỉ nhờ agent duyệt món bị script gắn cờ. Chạy nhiều agent song song dễ làm mất/trùng món → mỗi nhóm một file riêng, chạy xong kiểm trùng id/alias.
+- Thử giao diện AI không cần key thật: `npm run dev`, đặt Gemini key = `mock-key-for-local-testing`.
 - **Việc để lần sau** (chưa làm, cần người dùng xác nhận trước khi đổi hành vi):
   1. Trang đăng nhập riêng, bắt buộc đăng nhập mới vào app (giống app CFO).
   2. Xoá tài khoản test `nam@calitrack.app` trong Supabase (cẩn thận dữ liệu `fin_*` của app CFO) và đổi app CFO sang domain `@namnguyen27.app`.

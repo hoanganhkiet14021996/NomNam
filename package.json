@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "check": "tsc -b && oxlint && vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "food-requests": "node scripts/food-requests.mjs"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",
