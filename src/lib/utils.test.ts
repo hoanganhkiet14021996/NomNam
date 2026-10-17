@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { addDays, friendlyDay, rangeKeys, toKey, weekKeys } from './date'
 import { normalize, searchFoods } from './search'
 import { FOODS } from '@/data/foods.vn'
-import { frequentItems, mealForNow, recentItems, weightTrend } from '@/store/derive'
+import { frequentItems, mealForNow, recentItems, usualCombos, weightTrend } from '@/store/derive'
 import type { FoodLog } from '@/types'
 
 describe('date', () => {
@@ -100,6 +100,46 @@ describe('derive', () => {
     expect(mealForNow(new Date(2026, 0, 1, 12))).toBe('lunch')
     expect(mealForNow(new Date(2026, 0, 1, 19))).toBe('dinner')
     expect(mealForNow(new Date(2026, 0, 1, 15))).toBe('snack')
+  })
+
+  describe('usualCombos', () => {
+    const day = (date: string, names: string[], meal: FoodLog['meal'] = 'breakfast') =>
+      names.map((n) => log({ id: `${date}-${meal}-${n}`, date, meal, name: n, foodId: n }))
+    const toRec = (logs: FoodLog[]) => Object.fromEntries(logs.map((l) => [l.id, l]))
+
+    it('bữa lặp lại ≥ 2 ngày thành gợi ý, hay ăn nhất trước', () => {
+      const logs = [
+        ...day('2026-10-01', ['trung', 'yen-mach']),
+        ...day('2026-10-02', ['trung', 'yen-mach']),
+        ...day('2026-10-03', ['com', 'ga']),
+      ]
+      const r = usualCombos(toRec(logs), '2026-10-05')
+      expect(r).toHaveLength(1)
+      expect(r[0].count).toBe(2)
+      expect(r[0].items.map((i) => i.foodId).sort()).toEqual(['trung', 'yen-mach'])
+    })
+
+    it('khác một món phụ vẫn gộp chung (Jaccard ≥ 0.6) và lấy lần ăn gần nhất', () => {
+      const logs = [
+        ...day('2026-10-01', ['trung', 'yen-mach', 'sua']),
+        ...day('2026-10-02', ['trung', 'yen-mach', 'sua', 'chuoi']),
+      ]
+      const r = usualCombos(toRec(logs), '2026-10-05')
+      expect(r).toHaveLength(1)
+      expect(r[0].count).toBe(2)
+      expect(r[0].items).toHaveLength(4)
+    })
+
+    it('bỏ qua hôm nay, bữa 1 món, ngoài 30 ngày, khác bữa, và bữa đã lưu', () => {
+      const base = [...day('2026-10-01', ['trung', 'yen-mach']), ...day('2026-10-02', ['trung', 'yen-mach'])]
+      expect(usualCombos(toRec(base), '2026-10-02')).toHaveLength(0) // 10-02 là hôm nay → chỉ còn 1 ngày
+      expect(usualCombos(toRec(base), '2026-12-01')).toHaveLength(0) // quá 30 ngày
+      expect(usualCombos(toRec(base), '2026-10-05', 'lunch')).toHaveLength(0)
+      expect(usualCombos(toRec(base), '2026-10-05', 'breakfast')).toHaveLength(1)
+      expect(usualCombos(toRec(base), '2026-10-05', undefined, [new Set(['trung', 'yen-mach'])])).toHaveLength(0)
+      const single = [...day('2026-10-01', ['trung']), ...day('2026-10-02', ['trung'])]
+      expect(usualCombos(toRec(single), '2026-10-05')).toHaveLength(0)
+    })
   })
 
   it('weight trend trung bình 7 ngày', () => {

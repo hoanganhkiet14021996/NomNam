@@ -31,6 +31,7 @@ src/
   data/foods/*.ts          bảng món theo nhóm (meat, produce, vn-rice, vn-noodle, west-drinks) ~630 món tổng; meat.ts SINH TỰ ĐỘNG từ scripts/specs/meat.mjs; nguồn từng món ở docs/food-research/<nhóm>.md
   scripts/foods-bulk.mjs   nhập hàng loạt nguyên liệu từ USDA / Matvaretabellen / Bảng VN (Viện Dinh dưỡng) — 0 token AI, tự kiểm Atwater + độ lệch nguồn
   scripts/food-requests.mjs tải danh sách "món chờ bổ sung" từ Supabase
+  scripts/widget/          widget iPhone (Scriptable): nomnam-widget.js + README; chép công thức mục tiêu từ nutrition.ts, có test src/lib/widget.test.ts — đổi công thức trong app thì phải sửa script
   data/activities.ts       MET theo Compendium (nhẹ/vừa/mạnh)
   data/defaults.ts         DEFAULT_PROFILE (lean bulk, 50% eat-back)
   lib/nutrition.ts         BMR, TDEE, targets, scale/sum, dailyBudget, dayAdherence, fmt  ← logic thuần, có test

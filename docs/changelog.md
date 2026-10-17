@@ -11,6 +11,9 @@
 - **Bảng món ~250 → ~630 món** (chưa phát hành): tách thành `src/data/foods/*.ts` theo nhóm — thịt/cá/trứng 80 (heo, bò nạc/lẫn mỡ sống/chín, bò xay các mức béo, gà/vịt/ngan, cá VN, tôm/cua, trứng), rau củ/trái cây/tinh bột/đậu hạt/sữa/gia vị 123, món cơm quán/canh/xào 63, bún phở/cháo/xôi/bánh/chè 60, món Tây/chuỗi/đồ uống 52. Nhóm thịt cá sinh bằng `scripts/foods-bulk.mjs` từ USDA + Matvaretabellen + Bảng thành phần thực phẩm VN (Viện Dinh dưỡng, API công khai) — kiểm Atwater, loại món nguồn đáng ngờ (log ở `docs/food-research/meat.md`). Nguồn và độ tin cậy từng món ở `docs/food-research/`.
 - Gửi AI chỉ danh sách `[id] tên · khẩu phần` (bỏ số dinh dưỡng) để prompt gọn khi bảng lớn.
 - Phản hồi Gemini giả lập cho `npm run dev` (key `mock-key-for-local-testing`, không vào bản build).
+- **Bữa mẫu tự gợi ý**: tab Bữa mẫu hiện "Gợi ý từ bữa … bạn hay ăn" — bữa lặp lại ≥ 2 ngày trong 30 ngày (khác một món phụ vẫn gộp, Jaccard ≥ 0.6), bấm để thêm cả bữa, "Lưu" để giữ thành bữa mẫu. `usualCombos` ở `store/derive.ts` (có test).
+- Tìm món: món đã từng ăn nhiều lần xếp lên đầu kết quả.
+- **Widget iPhone (Scriptable)**: `scripts/widget/nomnam-widget.js` + README cài đặt. Đăng nhập tên + PIN (lưu Keychain của máy), đọc `profiles` / `food_logs` / `activity_logs` hôm nay từ Supabase, hiện giống thẻ tổng kết màn Hôm nay: vòng calo còn lại + protein/carbs/fat/xơ (đã ăn, mục tiêu, còn thiếu) — cỡ nhỏ/vừa/lớn, sáng/tối. `src/lib/widget.test.ts` kiểm tra công thức trong script khớp app.
 ### Sửa (Fixed)
 - Tìm "egg" ra Cà tím (alias "eggplant") thay vì Trứng gà: alias trùng nguyên từ được ưu tiên hơn khớp một phần.
 - Nước mía 180 → 239 kcal/ly 300 ml (Bảng VN 79.6 kcal/100g). Bỏ alias nhầm: "xôi xéo" (xôi mặn), "bạc xỉu" (cà phê sữa đá), "nấm đông cô" (nấm tươi). Thêm alias: thịt kho tàu / hột vịt, trứng hấp vân, cơm gà chiên, 7up / sprite / mirinda / fanta.

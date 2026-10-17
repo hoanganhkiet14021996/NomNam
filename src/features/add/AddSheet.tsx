@@ -10,7 +10,7 @@ import { addDays } from '@/lib/date'
 import { fmtG, fmtKcal, pickNutrients, scaleNutrients, sumNutrients } from '@/lib/nutrition'
 import { searchFoods } from '@/lib/search'
 import { cn } from '@/lib/utils'
-import { MEALS, MEAL_LABEL, frequentItems, portionText, recentItems } from '@/store/derive'
+import { MEALS, MEAL_LABEL, frequentItems, itemKey, portionText, recentItems, usualCombos, type UsualCombo } from '@/store/derive'
 import { useAllFoods } from '@/store/hooks'
 import { useAppStore, type NewFoodLog } from '@/store/useAppStore'
 import { useUi } from '@/store/ui'
@@ -212,7 +212,28 @@ function ListScreen({
     if (matchMedia('(pointer: fine)').matches) inputRef.current?.focus()
   }, [])
 
-  const results = useMemo(() => searchFoods(q, foods), [q, foods])
+  // Món đã từng ăn (nhiều lần trước) xếp lên đầu kết quả tìm; sort ổn định nên cùng số lần vẫn giữ thứ tự khớp tên
+  const eatenCount = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const l of Object.values(foodLogs)) if (l.foodId && !l.deletedAt) m.set(l.foodId, (m.get(l.foodId) ?? 0) + 1)
+    return m
+  }, [foodLogs])
+  const results = useMemo(
+    () => [...searchFoods(q, foods)].sort((a, b) => (eatenCount.get(b.id) ?? 0) - (eatenCount.get(a.id) ?? 0)),
+    [q, foods, eatenCount],
+  )
+  const combos = useMemo(
+    () =>
+      usualCombos(
+        foodLogs,
+        date,
+        meal,
+        Object.values(savedMeals)
+          .filter((m) => !m.deletedAt)
+          .map((m) => new Set(m.items.map(itemKey))),
+      ),
+    [foodLogs, date, meal, savedMeals],
+  )
   const foodById = useMemo(() => new Map(foods.map((f) => [f.id, f])), [foods])
 
   /** Món gần đây → mở chọn khẩu phần (nếu là món DB) hoặc thêm lại y hệt. */
@@ -334,8 +355,9 @@ function ListScreen({
               </>
             ))}
 
-          {tab === 'meals' &&
-            (meals.length ? (
+          {tab === 'meals' && (
+            <>
+              {meals.length > 0 && (
               <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
                 {meals.map((m) => {
                   const t = sumNutrients(m.items.map(pickNutrients))
@@ -372,9 +394,26 @@ function ListScreen({
                   )
                 })}
               </ul>
-            ) : (
-              <Empty text='Ăn xong một bữa hay lặp lại? Ở màn Hôm nay bấm "⋯" trên bữa đó → "Lưu thành bữa mẫu", lần sau thêm cả bữa bằng 1 chạm.' />
-            ))}
+              )}
+
+              {combos.length > 0 && (
+                <>
+                  <p className="px-1 pt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Gợi ý từ {MEAL_LABEL[meal].toLowerCase()} bạn hay ăn
+                  </p>
+                  <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+                    {combos.map((c) => (
+                      <ComboRow key={c.items.map((i) => i.id).join()} combo={c} onLog={onLog} />
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {meals.length === 0 && combos.length === 0 && (
+                <Empty text='Ăn xong một bữa hay lặp lại? Ở màn Hôm nay bấm "⋯" trên bữa đó → "Lưu thành bữa mẫu". Bữa nào bạn ăn lặp lại từ 2 ngày trở lên cũng sẽ tự hiện ở đây để thêm cả bữa bằng 1 chạm.' />
+              )}
+            </>
+          )}
 
           {tab === 'mine' && (
             <>
@@ -458,6 +497,46 @@ function LogRow({ log, onClick, onQuick }: { log: FoodLog; onClick: () => void; 
         </span>
       </button>
       <QuickBtn label={`Thêm lại ${log.name}`} onClick={onQuick} />
+    </li>
+  )
+}
+
+/** Bữa tự gợi ý từ lịch sử: bấm để thêm cả bữa, hoặc "Lưu" để giữ thành bữa mẫu. */
+function ComboRow({ combo, onLog }: { combo: UsualCombo; onLog: (items: Omit<NewFoodLog, 'date' | 'meal'>[]) => void }) {
+  const saveMeal = useAppStore((s) => s.saveMeal)
+  const items = combo.items.map((l) => ({
+    ...pickNutrients(l),
+    name: l.name,
+    emoji: l.emoji,
+    foodId: l.foodId,
+    grams: l.grams,
+    servingLabel: l.servingLabel,
+  }))
+  const t = sumNutrients(items.map(pickNutrients))
+  const add = () => onLog(items.map((it) => ({ ...it, source: 'meal' as const })))
+  return (
+    <li className="flex items-center gap-3 px-3 py-2.5">
+      <button type="button" className="min-w-0 flex-1 text-left" onClick={add}>
+        <span className="block truncate text-sm font-semibold">{combo.name}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {items.length} món · ăn {combo.count} lần
+        </span>
+        <span className="num text-xs">
+          <b>{fmtKcal(t.kcal)}</b> kcal · <b className="text-protein">{fmtG(t.protein)}g</b> P
+        </span>
+      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label={`Lưu ${combo.name} thành bữa mẫu`}
+        onClick={() => {
+          saveMeal(combo.name, items)
+          toast.success(`Đã lưu bữa mẫu "${combo.name}"`)
+        }}
+      >
+        Lưu
+      </Button>
+      <QuickBtn label={`Thêm ${combo.name}`} onClick={add} />
     </li>
   )
 }

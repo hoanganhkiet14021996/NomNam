@@ -130,6 +130,71 @@ export function frequentItems(
     .map((s) => s.last)
 }
 
+export interface UsualCombo {
+  meal: MealType
+  /** số ngày đã ăn bữa tương tự (trong 30 ngày) */
+  count: number
+  /** các món của lần ăn gần nhất */
+  items: FoodLog[]
+  name: string
+}
+
+const comboKeys = (items: FoodLog[]) => new Set(items.map(itemKey))
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  let inter = 0
+  for (const x of a) if (b.has(x)) inter++
+  return inter / (a.size + b.size - inter)
+}
+
+/**
+ * Bữa hay lặp lại: gom các (ngày, bữa) có ≥ 2 món giống nhau ≥ 60% (khác một món phụ vẫn tính là cùng bữa),
+ * ăn từ `minCount` ngày trở lên trong 30 ngày → gợi ý thành "bữa mẫu". Hay ăn nhất trước.
+ * `savedKeys`: bộ khoá món của các bữa mẫu đã lưu — bỏ gợi ý đã trùng.
+ */
+export function usualCombos(
+  foodLogs: Record<string, FoodLog>,
+  today: string,
+  meal?: MealType,
+  savedKeys: Set<string>[] = [],
+  minCount = 2,
+): UsualCombo[] {
+  const since = addDays(today, -30)
+  const byDayMeal = new Map<string, FoodLog[]>()
+  for (const l of Object.values(foodLogs)) {
+    if (!alive(l) || l.date < since || l.date >= today || (meal && l.meal !== meal)) continue
+    const k = `${l.date}|${l.meal}`
+    byDayMeal.set(k, [...(byDayMeal.get(k) ?? []), l])
+  }
+
+  const clusters: { meal: MealType; keys: Set<string>; count: number; last: FoodLog[]; lastDate: string }[] = []
+  const sorted = [...byDayMeal.entries()].sort(([a], [b]) => a.localeCompare(b))
+  for (const [k, items] of sorted) {
+    const keys = comboKeys(items)
+    if (keys.size < 2) continue
+    const [date, m] = k.split('|') as [string, MealType]
+    const hit = clusters.find((c) => c.meal === m && jaccard(c.keys, keys) >= 0.6)
+    if (hit) {
+      hit.count++
+      hit.last = items // ngày sau ghi đè → luôn là lần ăn gần nhất
+      hit.lastDate = date
+    } else clusters.push({ meal: m, keys, count: 1, last: items, lastDate: date })
+  }
+
+  return clusters
+    .filter((c) => c.count >= minCount && !savedKeys.some((s) => jaccard(s, c.keys) >= 0.8))
+    .sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
+    .map((c) => ({
+      meal: c.meal,
+      count: c.count,
+      items: c.last,
+      name: c.last
+        .slice(0, 3)
+        .map((i) => i.name)
+        .join(' + '),
+    }))
+}
+
 /** Trung bình trượt 7 ngày của cân nặng (theo ngày có cân). */
 export function weightTrend(weights: Record<string, WeightLog>): { date: string; kg: number; avg: number }[] {
   const list = Object.values(weights)
