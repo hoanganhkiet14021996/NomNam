@@ -153,12 +153,15 @@ export interface AnalyzeInput {
   foods?: readonly Food[]
   /** Khẩu phần quen của người dùng (từ lịch sử log). */
   portionHints?: readonly PortionHint[]
+  /** Model dự phòng: dùng khi model chính quá tải / hết lượt. */
+  fallbackModel?: string
+  onFallback?: (model: string) => void
 }
 
 /** Key giả chỉ dùng khi chạy `npm run dev` để thử giao diện AI mà không gọi Gemini. */
 export const MOCK_API_KEY = 'mock-key-for-local-testing'
 
-export async function analyzeMeal({ apiKey, model, text, image, foods = FOODS, portionHints = [] }: AnalyzeInput): Promise<AiResult> {
+export async function analyzeMeal({ apiKey, model, text, image, foods = FOODS, portionHints = [], fallbackModel, onFallback }: AnalyzeInput): Promise<AiResult> {
   if (!apiKey) throw new Error('Chưa có Gemini API key. Vào tab Mục tiêu → AI để nhập key.')
   if (import.meta.env.DEV && apiKey === MOCK_API_KEY) {
     const { mockAnalyze } = await import('./mock')
@@ -175,21 +178,19 @@ export async function analyzeMeal({ apiKey, model, text, image, foods = FOODS, p
       : `Bữa ăn người dùng mô tả: ${text}`,
   })
 
+  const models = [model, ...(fallbackModel && fallbackModel !== model ? [fallbackModel] : [])]
   let raw: string | undefined
-  try {
-    const res = await ai.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts }],
-      config: {
-        systemInstruction: buildSystem(foods, portionHints),
-        responseMimeType: 'application/json',
-        responseJsonSchema: RESPONSE_SCHEMA,
-        temperature: 0.2,
-      },
-    })
-    raw = res.text
-  } catch (e) {
-    throw new Error(friendlyError(e))
+  let firstError: unknown
+  for (const [i, m] of models.entries()) {
+    try {
+      raw = await generateWithRetry(ai, m, parts, buildSystem(foods, portionHints))
+      if (i > 0) onFallback?.(m)
+      break
+    } catch (e) {
+      firstError ??= e
+      // Chỉ chuyển sang model dự phòng khi lỗi là do tải/quota (mỗi model có pool riêng); lỗi key, mạng… thì dừng
+      if (i === models.length - 1 || !isSwitchable(e)) throw new Error(friendlyError(i > 0 && /not found|404/i.test(errMsg(e)) ? firstError : e))
+    }
   }
   if (!raw) throw new Error('AI không trả về kết quả. Thử lại nhé.')
 
@@ -208,10 +209,85 @@ export function parseResult(json: unknown): AiResult {
   return parsed.data
 }
 
-function friendlyError(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e)
+const MAX_RETRIES = 2
+
+type Part = { text: string } | { inlineData: { data: string; mimeType: string } }
+
+async function generateWithRetry(ai: InstanceType<typeof import('@google/genai').GoogleGenAI>, model: string, parts: Part[], systemInstruction: string): Promise<string | undefined> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts }],
+        config: { systemInstruction, responseMimeType: 'application/json', responseJsonSchema: RESPONSE_SCHEMA, temperature: 0.2 },
+      })
+      return res.text
+    } catch (e) {
+      const wait = attempt < MAX_RETRIES ? retryDelayMs(e, attempt) : null
+      if (wait === null) throw e
+      await new Promise((r) => setTimeout(r, wait))
+    }
+  }
+}
+
+/** Lỗi nên thử model khác: quá tải, hết lượt, hoặc model không tồn tại. */
+export function isSwitchable(e: unknown): boolean {
+  return /503|UNAVAILABLE|overloaded|high demand|\b500\b|INTERNAL|deadline|429|RESOURCE_EXHAUSTED|quota|not found|404/i.test(errMsg(e))
+}
+
+/** Lọc danh sách model của API: chỉ model Gemini viết được chữ từ ảnh/chữ (bỏ tts, ảnh, embedding, live…). */
+export function pickGeminiModels(list: { name?: string; supportedGenerationMethods?: string[] }[]): string[] {
+  const ids = list
+    .filter((m) => m.name?.startsWith('models/gemini') && m.supportedGenerationMethods?.includes('generateContent'))
+    .map((m) => m.name!.replace(/^models\//, ''))
+    .filter((id) => !/tts|image|embedding|live|audio|robotics|computer-use|learnlm|aqa/i.test(id))
+  return [...new Set(ids)].sort()
+}
+
+/** Hỏi Google xem key này dùng được những model nào. */
+export async function listModels(apiKey: string): Promise<string[]> {
+  if (!apiKey) throw new Error('Nhập Gemini API key trước.')
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(apiKey)}`)
+  if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? 'Gemini API key không hợp lệ.' : `Không lấy được danh sách model (${res.status}).`)
+  const json = (await res.json()) as { models?: { name?: string; supportedGenerationMethods?: string[] }[] }
+  return pickGeminiModels(json.models ?? [])
+}
+
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
+/** Số giây Gemini bảo chờ ("Please retry in 23.4s" / "retryDelay":"23s"), null nếu không có. */
+export function suggestedRetrySeconds(e: unknown): number | null {
+  const m = errMsg(e).match(/retry in ([\d.]+)s|"retryDelay":\s*"([\d.]+)s"/i)
+  return m ? Math.ceil(Number(m[1] ?? m[2])) : null
+}
+
+/** Hết lượt theo NGÀY (không đáng thử lại) hay chỉ theo phút. */
+function isDailyQuota(msg: string): boolean {
+  return /PerDay|per day|daily/i.test(msg)
+}
+
+/** Lỗi tạm thời → trả số ms chờ rồi thử lại; null = không thử lại. Quá tải (503) lùi dần 1.5s, 3s, 6s; hết lượt/phút chờ theo gợi ý của Gemini nếu ≤ 20s. */
+export function retryDelayMs(e: unknown, attempt: number): number | null {
+  const msg = errMsg(e)
+  if (/503|UNAVAILABLE|overloaded|high demand|\b500\b|INTERNAL|deadline/i.test(msg)) return 1500 * 2 ** attempt + Math.random() * 500
+  if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg) && !isDailyQuota(msg)) {
+    const s = suggestedRetrySeconds(e)
+    if (s !== null && s <= 20) return (s + 1) * 1000
+  }
+  return null
+}
+
+export function friendlyError(e: unknown): string {
+  const msg = errMsg(e)
   if (/API key not valid|API_KEY_INVALID|PERMISSION_DENIED|401|403/i.test(msg)) return 'Gemini API key không hợp lệ.'
-  if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg)) return 'Hết lượt gọi Gemini miễn phí, thử lại sau ít phút.'
+  if (/429|RESOURCE_EXHAUSTED|quota/i.test(msg)) {
+    if (isDailyQuota(msg)) return 'Hết lượt gọi Gemini trong ngày (miễn phí). Lượt được làm mới vào khoảng 14:00 giờ Việt Nam.'
+    const s = suggestedRetrySeconds(e)
+    return s ? `Gửi hơi nhanh nên Gemini giới hạn theo phút. Chờ khoảng ${s} giây rồi thử lại.` : 'Gửi hơi nhanh nên Gemini giới hạn theo phút. Chờ ~1 phút rồi thử lại.'
+  }
+  if (/503|UNAVAILABLE|overloaded|high demand/i.test(msg)) return 'Gemini đang quá tải (không phải lỗi của bạn). Đã tự thử lại vài lần, bấm phân tích lại sau ít phút.'
   if (/not found|404/i.test(msg)) return 'Không tìm thấy model Gemini. Kiểm tra tên model trong tab Mục tiêu.'
   if (/fetch|network|Failed to fetch/i.test(msg)) return 'Mất kết nối mạng.'
   return `Lỗi AI: ${msg}`

@@ -134,6 +134,25 @@ src/
   3. Thử tay thêm/xoá món, bữa mẫu trên bản live + điện thoại thật; cài PWA; thử AI với Gemini key thật.
   4. Thêm URL Pages `https://hoanganhkiet14021996.github.io/NomNam/**` vào Supabase Redirect URLs (nếu chưa).
 
+## Ý tưởng mở rộng widget / iPhone (2026-10-22, để người dùng suy nghĩ rồi quyết)
+
+Widget Scriptable đã chạy ổn trên iPhone người dùng (xem `scripts/widget/README.md`). Widget Scriptable **không có nút bấm** (chỉ mở link); nút thật cần app iOS native. Các ý đã đề xuất, xếp theo thứ tự nên làm:
+
+1. **Widget màn hình khoá** (iOS 16+, `accessoryCircular/Rectangular/Inline`): vòng protein, dòng "Còn X kcal · thiếu Y g protein". Nhanh nhất, dùng hằng ngày.
+2. **Chụp ảnh món → log 1 chạm** qua Shortcuts (Action Button / Back Tap / Control Center) → Scriptable gọi Gemini → ghi thẳng `food_logs` lên Supabase (phải đúng định dạng snapshot của app; cần Gemini key trong Keychain). Có thể thêm **Siri** ("2 trứng + 1 chén cơm") và **Share Sheet** (ảnh/menu từ app khác).
+3. **Nhắc protein buổi tối** (Shortcuts tự chạy ~20:00, chỉ báo khi còn thiếu).
+4. Widget **gợi ý món** vừa khít phần còn thiếu, lấy từ lịch sử món hay ăn của chính người dùng.
+5. Widget **tuần**: 7 chấm ✓/✗, chuỗi ngày đạt, xu hướng cân.
+6. Tự cộng calo tập từ Apple Health/Watch (chỉ đáng làm nếu có Apple Watch); bot Zalo/Telegram (cần server — không khuyến khích).
+
+Quy trình sửa widget: sửa `scripts/widget/nomnam-widget.js` → tạo bản điền sẵn `SUPABASE_KEY` (từ `.env`) ở thư mục tạm, gửi người dùng dán đè vào Scriptable. **Không commit bản có key.** Đổi công thức mục tiêu trong `nutrition.ts` thì phải sửa cả script.
+
+## Gemini: quá tải & quota (2026-10-22)
+
+- `analyzeMeal` tự thử lại tối đa 2 lần (3 lượt gọi) khi lỗi 503/quá tải (lùi dần ~1.5s/3s) và khi 429 theo phút mà Gemini gợi ý chờ ≤ 20s; hết lượt theo **ngày** thì không thử lại. Thông báo lỗi phân biệt: quá tải / hết lượt phút / hết lượt ngày. Có test `src/lib/ai/gemini.test.ts`.
+- **Model dự phòng** (`settings.geminiFallbackModel`, mặc định `gemini-flash-lite-latest`, để trống = tắt): sau khi model chính hết lần thử vì quá tải / quota / 404 thì thử model dự phòng (toast báo đã dùng); lỗi key/mạng thì không chuyển. Dự phòng 404 → báo lỗi của model chính. Tab Mục tiêu có nút "Xem model key này dùng được" (gọi `models.list`) + datalist gợi ý. Test: `gemini.fallback.test.ts`. **Chưa thử với key thật** — nếu alias `gemini-flash-lite-latest` không tồn tại với key thì chọn lại từ danh sách.
+- Mỗi lần gọi gửi kèm cả bảng ~630 món làm tham chiếu (vài chục nghìn token) → dễ chạm giới hạn token/phút của gói miễn phí khi chụp liên tiếp.
+
 ## Tài liệu
 
 - `docs/checklist.md` — checklist tính năng & trạng thái (cập nhật khi làm xong tính năng).

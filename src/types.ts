@@ -139,6 +139,8 @@ export interface Settings {
   palette: Palette
   geminiKey: string
   geminiModel: string
+  /** Model dự phòng khi model chính quá tải / hết lượt ('' = tắt). */
+  geminiFallbackModel: string
 }
 
 /** Vai trò của một thành phần trong bữa (AI nhận diện từ ảnh). */

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Download, Eye, EyeOff, Monitor, Moon, RotateCcw, Sun, Upload } from 'lucide-react'
+import { Download, Eye, EyeOff, Loader2, Monitor, Moon, RotateCcw, Sun, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,8 @@ import { Switch } from '@/components/ui/switch'
 import { NumberField } from '@/components/NumberField'
 import { exportFoodCSV, exportJSON, importJSON } from '@/lib/export'
 import { calcAutoTargets, calcBMR, calcBaseTDEE, fmtKcal, GOAL_FACTOR, GOAL_LABEL } from '@/lib/nutrition'
-import { DEFAULT_GEMINI_MODEL, useSettings } from '@/store/settings'
+import { listModels } from '@/lib/ai/gemini'
+import { DEFAULT_GEMINI_FALLBACK, DEFAULT_GEMINI_MODEL, useSettings } from '@/store/settings'
 import { useTargets } from '@/store/hooks'
 import { useAppStore } from '@/store/useAppStore'
 import type { Palette, ThemePref } from '@/types'
@@ -182,11 +183,26 @@ function OverrideEditor() {
 }
 
 function GeminiSettings() {
-  const { geminiKey, geminiModel, setGemini } = useSettings()
+  const { geminiKey, geminiModel, geminiFallbackModel, setGemini } = useSettings()
   const [key, setKey] = useState(geminiKey)
   const [model, setModel] = useState(geminiModel)
+  const [fallback, setFallback] = useState(geminiFallbackModel ?? '')
   const [show, setShow] = useState(false)
-  const dirty = key !== geminiKey || model !== geminiModel
+  const [available, setAvailable] = useState<string[]>([])
+  const [loadingModels, setLoadingModels] = useState(false)
+  const dirty = key !== geminiKey || model !== geminiModel || fallback !== (geminiFallbackModel ?? '')
+  const loadModels = async () => {
+    setLoadingModels(true)
+    try {
+      const list = await listModels(key.trim())
+      setAvailable(list)
+      toast.success(`Key này dùng được ${list.length} model`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoadingModels(false)
+    }
+  }
   return (
     <Card className="space-y-3 p-4">
       <p className="text-sm text-muted-foreground">
@@ -202,12 +218,25 @@ function GeminiSettings() {
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
-      <Input placeholder={DEFAULT_GEMINI_MODEL} value={model} onChange={(e) => setModel(e.target.value)} aria-label="Tên model" />
+      <Input list="gemini-models" placeholder={DEFAULT_GEMINI_MODEL} value={model} onChange={(e) => setModel(e.target.value)} aria-label="Tên model chính" />
+      <Input list="gemini-models" placeholder={`Model dự phòng (${DEFAULT_GEMINI_FALLBACK})`} value={fallback} onChange={(e) => setFallback(e.target.value)} aria-label="Tên model dự phòng" />
+      <datalist id="gemini-models">
+        {available.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+      <p className="text-xs text-muted-foreground">
+        Model chính bị quá tải hoặc hết lượt thì app tự thử model dự phòng (để trống = tắt).
+        {available.length > 0 && ` Gợi ý: ${available.slice(0, 6).join(', ')}${available.length > 6 ? '…' : ''}. Chạm vào ô để chọn.`}
+      </p>
+      <Button variant="outline" className="w-full" onClick={loadModels} disabled={loadingModels || key.trim().length < 20}>
+        {loadingModels && <Loader2 className="animate-spin" />} Xem model key này dùng được
+      </Button>
       <Button
         className="w-full"
         disabled={!dirty}
         onClick={() => {
-          setGemini(key, model || DEFAULT_GEMINI_MODEL)
+          setGemini(key, model || DEFAULT_GEMINI_MODEL, fallback)
           toast.success('Đã lưu cài đặt AI')
         }}
       >

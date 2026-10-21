@@ -35,7 +35,7 @@ export function AiLogView({
   onBack: () => void
   onConfirm: (items: AiConfirmedItem[]) => void
 }) {
-  const { geminiKey, geminiModel, setGemini } = useSettings()
+  const { geminiKey, geminiModel, geminiFallbackModel, setGemini } = useSettings()
   const foods = useAllFoods()
   const foodLogs = useAppStore((s) => s.foodLogs)
   const addCustomFood = useAppStore((s) => s.addCustomFood)
@@ -59,6 +59,8 @@ export function AiLogView({
       const res = await analyzeMeal({
         apiKey: geminiKey,
         model: geminiModel,
+        fallbackModel: geminiFallbackModel,
+        onFallback: (m) => toast.info(`Model chính đang bận, đã dùng ${m}`),
         text: text.trim() || undefined,
         foods,
         portionHints: portionHints(usual),
