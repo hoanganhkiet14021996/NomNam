@@ -10,6 +10,8 @@ interface SettingsState extends Settings {
   setTheme: (t: ThemePref) => void
   setPalette: (p: Palette) => void
   setGemini: (key: string, model?: string, fallback?: string) => void
+  snoozeAdvice: (untilDay: string) => void
+  snoozeWeighRemind: (day: string) => void
 }
 
 /** Cài đặt chỉ thuộc thiết bị này (không sync): theme, Gemini API key. */
@@ -21,6 +23,10 @@ export const useSettings = create<SettingsState>()(
       geminiKey: '',
       geminiModel: DEFAULT_GEMINI_MODEL,
       geminiFallbackModel: DEFAULT_GEMINI_FALLBACK,
+      adviceSnoozeUntil: '',
+      weighRemindSnoozedOn: '',
+      snoozeAdvice: (adviceSnoozeUntil) => set({ adviceSnoozeUntil }),
+      snoozeWeighRemind: (weighRemindSnoozedOn) => set({ weighRemindSnoozedOn }),
       setTheme: (theme) => {
         set({ theme })
         applyTheme(theme)

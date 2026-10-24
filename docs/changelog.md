@@ -1,6 +1,15 @@
 # Nhật Ký Thay Đổi (Changelog) - NomNam
 
 ## [Chưa phát hành]
+### Thêm (Added) — báo cáo cho PT
+- **Mục tiêu → Dữ liệu → "Báo cáo cho PT / AI"**: tóm tắt 14/28/56 ngày (hồ sơ & mục tiêu, cân + xu hướng, TB calo/protein/macro, đạt mục tiêu, theo tuần, từng ngày, vận động, TDEE thực tế, chất lượng log) dạng markdown (~3–5k token), sao chép vào clipboard hoặc tải .md; tính ngay trên máy từ dữ liệu trong app, không cần đăng nhập/PIN nên dùng được trên iPad/điện thoại. Logic ở `src/lib/fitnessReport.ts` (có test).
+- `scripts/lib/login.mjs`: đăng nhập tên + PIN dùng chung cho script chạy trên máy tính (`food-requests.mjs`).
+### Thêm (Added) — cân nặng
+- **Cân nặng theo nhiều tuần** (tab Tuần): bảng TB cân / thay đổi so tuần trước / calo TB / protein TB / số ngày log cho 8 tuần (xem được 26 tuần), không chỉ tuần đang xem.
+- **Biểu đồ cân chồng với calo TB tuần**: hai biểu đồ xếp chồng cùng trục thời gian, tooltip đồng bộ (giữ quy ước 1 trục Y mỗi biểu đồ), kèm đường quỹ calo TB.
+- **Nhắc cân** (tab Hôm nay): ≥ 2 ngày chưa cân (hoặc chưa cân lần nào) → thẻ nhập cân ngay tại chỗ, "Để sau" ẩn tới hết hôm nay. Chỉ nhắc trong app (nhắc ngoài app cần server/Shortcuts).
+- **Gợi ý chỉnh kcal theo xu hướng cân thật**: hồi quy cân 3 tuần so với khoảng mong muốn của mục tiêu (bulk +0,2…+0,5 kg/tuần, giữ cân ±0,2, cắt −0,5…−1%/tuần); lệch thì đề xuất ±100–250 kcal kèm TDEE thực tế (= kcal ăn TB − độ dốc × 1100). Nút Áp dụng (có Hoàn tác) / Bỏ qua 7 ngày. Chỉ đề xuất khi có ≥ 6 lần cân trải ≥ 10 ngày và ≥ 8 ngày log đủ (≥ 600 kcal, không tính hôm nay); sau khi chỉnh chỉ tính dữ liệu từ sau ngày đó (`profile.overrides.adjustedAt`, không cần đổi schema). Logic ở `src/lib/weight.ts` (17 test).
+
 ### Thêm (Added)
 - AI ghi món (ảnh/chữ): món khớp bảng món của app (theo `foodId` AI trả về hoặc tên/alias khớp chính xác không dấu) thì kcal/macro **tính lại từ DB** theo gram, nhãn "✓ theo bảng món"; món lạ giữ số AI ước lượng, nhãn "AI ước lượng". Bảng gửi AI kèm id và gồm cả món riêng. Logic ở `src/lib/ai/match.ts` (có test).
 - AI trả output có cấu trúc: tên bữa, từng thành phần với vai trò (tinh bột/đạm/rau/…), loại cụ thể, cách nấu; tự thêm dòng "Dầu ăn" cho nguyên liệu chiên/xào.

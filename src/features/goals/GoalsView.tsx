@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Download, Eye, EyeOff, Loader2, Monitor, Moon, RotateCcw, Sun, Upload } from 'lucide-react'
+import { ClipboardCopy, Download, Eye, EyeOff, Loader2, Monitor, Moon, RotateCcw, Sun, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { Switch } from '@/components/ui/switch'
 import { NumberField } from '@/components/NumberField'
-import { exportFoodCSV, exportJSON, importJSON } from '@/lib/export'
-import { calcAutoTargets, calcBMR, calcBaseTDEE, fmtKcal, GOAL_FACTOR, GOAL_LABEL } from '@/lib/nutrition'
+import { nowIso } from '@/lib/date'
+import { exportFoodCSV, exportJSON, importJSON, shareFitnessReport } from '@/lib/export'
+import { calcAutoTargets, calcBMR, calcBaseTDEE, fmtKcal, GOAL_FACTOR, GOAL_LABEL, hasTargetOverrides } from '@/lib/nutrition'
 import { listModels } from '@/lib/ai/gemini'
 import { DEFAULT_GEMINI_FALLBACK, DEFAULT_GEMINI_MODEL, useSettings } from '@/store/settings'
 import { useTargets } from '@/store/hooks'
@@ -24,7 +25,7 @@ export function GoalsView() {
   const updateProfile = useAppStore((s) => s.updateProfile)
   const targets = useTargets()
   const auto = calcAutoTargets(profile)
-  const overridden = Object.keys(profile.overrides ?? {}).length > 0
+  const overridden = hasTargetOverrides(profile)
 
   return (
     <div className="space-y-4">
@@ -137,8 +138,10 @@ function OverrideEditor() {
   const profile = useAppStore((s) => s.profile)
   const updateProfile = useAppStore((s) => s.updateProfile)
   const targets = useTargets()
-  const [open, setOpen] = useState(Object.keys(profile.overrides ?? {}).length > 0)
-  const set = (k: 'kcal' | 'protein' | 'fat' | 'fiber') => (v: number) => updateProfile({ overrides: { ...profile.overrides, [k]: v } })
+  const [open, setOpen] = useState(hasTargetOverrides(profile))
+  // Tự đổi kcal cũng là một lần chỉnh → xu hướng cân chỉ tính từ sau lần này (xem lib/weight.ts)
+  const set = (k: 'kcal' | 'protein' | 'fat' | 'fiber') => (v: number) =>
+    updateProfile({ overrides: { ...profile.overrides, [k]: v, ...(k === 'kcal' ? { adjustedAt: nowIso() } : {}) } })
 
   return (
     <div className="border-t px-4 py-3">
@@ -283,8 +286,36 @@ function ThemeSettings() {
 
 function DataSettings() {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [reportDays, setReportDays] = useState('28')
+  const report = async (mode: 'copy' | 'file') => {
+    const r = await shareFitnessReport(Number(reportDays), mode)
+    toast.success(r === 'copied' ? 'Đã sao chép báo cáo — dán cho PT/AI' : 'Đã tải file báo cáo (.md)')
+  }
   return (
     <Card className="grid grid-cols-2 gap-2 p-4">
+      <div className="col-span-2 space-y-2 rounded-xl bg-muted p-3">
+        <p className="text-sm font-semibold">Báo cáo cho PT / AI</p>
+        <p className="text-xs text-muted-foreground">
+          Tóm tắt cân nặng, calo, protein, vận động và TDEE thực tế (khoảng 3–5k token). Tính ngay trên máy, không cần đăng nhập — sao chép rồi dán vào chat để PT đánh giá.
+        </p>
+        <Segmented
+          value={reportDays}
+          onChange={setReportDays}
+          options={[
+            { value: '14', label: '14 ngày' },
+            { value: '28', label: '28 ngày' },
+            { value: '56', label: '56 ngày' },
+          ]}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={() => report('copy')}>
+            <ClipboardCopy /> Sao chép
+          </Button>
+          <Button variant="outline" onClick={() => report('file')}>
+            <Download /> Tải .md
+          </Button>
+        </div>
+      </div>
       <Button variant="outline" onClick={exportFoodCSV}>
         <Download /> Xuất CSV
       </Button>

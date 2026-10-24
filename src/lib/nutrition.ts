@@ -40,6 +40,11 @@ export function splitMacros(kcal: number, protein: number): Targets {
   return { kcal, protein, carbs, fat, fiber }
 }
 
+/** Có override nào người dùng tự đặt không (bỏ qua dấu thời gian `adjustedAt` của gợi ý chỉnh kcal). */
+export function hasTargetOverrides(p: Profile): boolean {
+  return Object.keys(p.overrides ?? {}).some((k) => k !== 'adjustedAt')
+}
+
 /** Mục tiêu cuối cùng: override (nếu có) đè lên số tự tính. Nếu đổi kcal/protein, macro còn lại tính lại cho khớp. */
 export function calcTargets(p: Profile): Targets {
   const auto = calcAutoTargets(p)

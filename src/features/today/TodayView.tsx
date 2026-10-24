@@ -10,9 +10,11 @@ import { MEALS, logsForDate } from '@/store/derive'
 import { useDay } from '@/store/hooks'
 import { useAppStore } from '@/store/useAppStore'
 import { useUi } from '@/store/ui'
+import { WeightAdvice } from '@/features/weight/WeightAdvice'
 import { DateStrip } from './DateStrip'
 import { MealSection } from './MealSection'
 import { SummaryCard } from './SummaryCard'
+import { WeightReminder } from './WeightReminder'
 
 export function TodayView() {
   const date = useUi((s) => s.date)
@@ -42,6 +44,9 @@ export function TodayView() {
 
       <div className="space-y-4 px-4">
         <SummaryCard day={day} />
+
+        {date === today && <WeightReminder />}
+        <WeightAdvice compact />
 
         {day.logs.length === 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>

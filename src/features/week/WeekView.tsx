@@ -12,7 +12,9 @@ import { activitiesForDate, logsForDate, summarizeDay, type DaySummary } from '@
 import { useTargets } from '@/store/hooks'
 import { useAppStore } from '@/store/useAppStore'
 import { useUi } from '@/store/ui'
+import { WeightAdvice } from '@/features/weight/WeightAdvice'
 import { WeightCard } from './WeightCard'
+import { WeightWeeks } from './WeightWeeks'
 
 export function WeekView() {
   const date = useUi((s) => s.date)
@@ -121,7 +123,11 @@ export function WeekView() {
           <ProteinChart days={days} target={targets.protein} />
         </ChartCard>
 
+        <WeightAdvice />
+
         <WeightCard />
+
+        <WeightWeeks />
       </div>
     </div>
   )

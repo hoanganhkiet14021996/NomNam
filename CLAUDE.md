@@ -31,12 +31,15 @@ src/
   data/foods/*.ts          bảng món theo nhóm (meat, produce, vn-rice, vn-noodle, west-drinks) ~630 món tổng; meat.ts SINH TỰ ĐỘNG từ scripts/specs/meat.mjs; nguồn từng món ở docs/food-research/<nhóm>.md
   scripts/foods-bulk.mjs   nhập hàng loạt nguyên liệu từ USDA / Matvaretabellen / Bảng VN (Viện Dinh dưỡng) — 0 token AI, tự kiểm Atwater + độ lệch nguồn
   scripts/food-requests.mjs tải danh sách "món chờ bổ sung" từ Supabase
+  scripts/lib/login.mjs    đăng nhập tên + PIN cho script chạy trên máy tính (dùng bởi food-requests.mjs)
   scripts/widget/          widget iPhone (Scriptable): nomnam-widget.js + README; chép công thức mục tiêu từ nutrition.ts, có test src/lib/widget.test.ts — đổi công thức trong app thì phải sửa script
   data/activities.ts       MET theo Compendium (nhẹ/vừa/mạnh)
   data/defaults.ts         DEFAULT_PROFILE (lean bulk, 50% eat-back)
   lib/nutrition.ts         BMR, TDEE, targets, scale/sum, dailyBudget, dayAdherence, fmt  ← logic thuần, có test
   lib/met.ts               activityKcal = (MET − 1) × kg × giờ
   lib/date.ts              key 'YYYY-MM-DD' theo GIỜ ĐỊA PHƯƠNG (không dùng toISOString cho ngày)
+  lib/fitnessReport.ts     buildFitnessReport → markdown gọn (cân, calo, protein, vận động, TDEE thực tế) để dán cho PT/AI; nút "Báo cáo cho PT" ở Mục tiêu → Dữ liệu; tính ngay trên máy, không cần PIN ← có test
+  lib/weight.ts            cân nhiều tuần, nhắc cân, hồi quy xu hướng cân, gợi ý chỉnh kcal (adviseCalories) ← có test; `overrides.adjustedAt` đánh dấu lần chỉnh gần nhất
   lib/search.ts            tìm không dấu ("uc ga" → Ức gà), alias
   lib/sync.ts              local-first sync Supabase (pull → push outbox), auth helpers
   lib/supabase.ts          client = null nếu .env chưa hợp lệ → chế độ chỉ lưu máy
@@ -127,6 +130,7 @@ src/
 - Đăng nhập hiện **không bắt buộc**: không có trang đăng nhập riêng. Có 2 chỗ: màn chào `Onboarding.tsx` ("Đã dùng trên máy khác? Đăng nhập…", chỉ hiện khi máy chưa có dữ liệu, `onboarded=false`) và thẻ tài khoản `AccountCard.tsx` ở tab Mục tiêu. Muốn thấy lại màn chào khi test: xoá dữ liệu site (DevTools → Application → Clear site data) hoặc cửa sổ ẩn danh.
 - **Món chờ bổ sung** (AI gặp món chưa có trong bảng): người dùng chạy `npm run food-requests` (tự nhập tên + PIN, ghi ra `food-requests.json` — không commit) → gọi agent `food-researcher` research và thêm món vào file nhóm phù hợp trong `src/data/foods/` (không sửa `foods.vn.ts` gốc), **tên hoặc alias phải khớp tên trong request** để app tự nhận ra → trong app bấm "Cập nhật N bữa".
 - **Mở rộng bảng món (rẻ token):** KHÔNG cho agent tra web từng món. Nguyên liệu → viết/sửa spec trong `scripts/specs/<nhóm>.mjs` (chọn tên + id nguồn) rồi chạy `FOOD_DATA_DIR=<thư mục> node scripts/foods-bulk.mjs scripts/specs/<nhóm>.mjs` (dữ liệu: `cache.json` gộp USDA SR + Foundation + Matvaretabellen và `vdd/all.json` từ API `https://viendinhduong.vn/api/fe/foodNatunal/getPageFoodData?page=1&pageSize=1000`). Món Việt phức hợp → tính từ công thức (nguyên liệu × gram), agent chỉ đề xuất công thức. Chỉ nhờ agent duyệt món bị script gắn cờ. Chạy nhiều agent song song dễ làm mất/trùng món → mỗi nhóm một file riêng, chạy xong kiểm trùng id/alias.
+- **Dữ liệu cá nhân của người dùng (sức khoẻ, lịch tập, body fat, agent PT) KHÔNG nằm trong repo này** mà ở thư mục riêng `D:\AI Work\nam` (một task khác trong workspace; xem README/CLAUDE.md ở đó). Repo app chỉ chứa mọi thứ liên quan app/GitHub Pages; đừng thêm thông tin cá nhân của người dùng vào repo app. Báo cáo fitness lấy bằng nút **Mục tiêu → Dữ liệu → Báo cáo cho PT → Sao chép** (không cần PIN/Terminal, dùng được trên iPad) rồi dán vào chat; Claude lưu thành `nam\fitness-report.md` và gọi agent `pt-coach`.
 - Thử giao diện AI không cần key thật: `npm run dev`, đặt Gemini key = `mock-key-for-local-testing`.
 - **Việc để lần sau** (chưa làm, cần người dùng xác nhận trước khi đổi hành vi):
   1. Trang đăng nhập riêng, bắt buộc đăng nhập mới vào app (giống app CFO).

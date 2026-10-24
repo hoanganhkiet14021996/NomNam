@@ -15,6 +15,10 @@ dev-dist
 
 # Danh sách món chờ bổ sung tải từ Supabase (npm run food-requests)
 food-requests.json
+# Dữ liệu sức khoẻ cá nhân sống ở thư mục riêng ../nam (ngoài repo); các dòng này chỉ là lớp bảo vệ phòng khi lỡ chép vào đây
+fitness-report.md
+body-notes.md
+training-plan.md
 
 # Secrets
 .env

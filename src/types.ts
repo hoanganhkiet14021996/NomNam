@@ -124,7 +124,10 @@ export interface Profile {
   goal: Goal
   proteinPerKg: number
   /** Mục tiêu người dùng tự đặt, ghi đè số tự tính. */
-  overrides: Partial<Targets>
+  overrides: Partial<Targets> & {
+    /** Lần cuối app gợi ý chỉnh kcal và người dùng bấm Áp dụng (ISO) — chỉ để tính xu hướng cân từ sau lần chỉnh. Nằm trong overrides (jsonb) để không cần đổi schema. */
+    adjustedAt?: string
+  }
   /** % calo tập được cộng lại vào quỹ ngày (0–100). */
   exerciseEatBackPct: number
   updatedAt: string
@@ -141,6 +144,10 @@ export interface Settings {
   geminiModel: string
   /** Model dự phòng khi model chính quá tải / hết lượt ('' = tắt). */
   geminiFallbackModel: string
+  /** Ẩn gợi ý chỉnh kcal tới hết ngày này (YYYY-MM-DD), theo thiết bị. */
+  adviceSnoozeUntil: string
+  /** Ngày người dùng bấm "Để sau" ở nhắc cân, theo thiết bị. */
+  weighRemindSnoozedOn: string
 }
 
 /** Vai trò của một thành phần trong bữa (AI nhận diện từ ảnh). */

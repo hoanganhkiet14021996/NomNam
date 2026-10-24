@@ -44,6 +44,9 @@
 | | Bảng ✓/✗ từng ngày, chuỗi ngày đạt, trung bình tuần | ❌ | ✅ |
 | | Gợi ý (thiếu protein → thêm bao nhiêu whey/ức gà) | ❌ | ✅ |
 | | Cân nặng + trung bình 7 ngày + thay đổi/tuần | ❌ | ✅ |
+| **Cân nặng** | Cân theo nhiều tuần + biểu đồ cân chồng calo TB tuần | ❌ | ✅ |
+| | Nhắc cân khi ≥ 2 ngày chưa cân (trong app) | ❌ | ✅ |
+| | Gợi ý chỉnh kcal theo xu hướng cân (Áp dụng / Bỏ qua) + TDEE thực tế | ❌ | ✅ (cần ≥ 2–3 tuần dữ liệu thật để kiểm chứng) |
 | **UX** | Bottom nav, dark mode, animation, empty state | ❌ | ✅ |
 | | Xuất CSV, sao lưu / khôi phục JSON | ❌ | ✅ |
 | **An toàn** | `.env` trong .gitignore | ❌ | ✅ |

@@ -1,5 +1,6 @@
 import { TABLES, useAppStore } from '@/store/useAppStore'
 import { MEAL_LABEL } from '@/store/derive'
+import { buildFitnessReport } from '@/lib/fitnessReport'
 
 function download(filename: string, content: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }))
@@ -39,6 +40,25 @@ export function exportFoodCSV() {
   ]
   // BOM để Excel đọc đúng tiếng Việt
   download(`nomnam-nhat-ky-${stamp()}.csv`, '﻿' + rows.map((r) => r.map(esc).join(',')).join('\n'), 'text/csv;charset=utf-8')
+}
+
+/**
+ * Báo cáo fitness (markdown) để dán cho PT/AI đánh giá: sao chép vào clipboard; clipboard bị chặn thì tải file .md.
+ * Tính ngay trên máy, không cần đăng nhập.
+ */
+export async function shareFitnessReport(days: number, mode: 'copy' | 'file'): Promise<'copied' | 'downloaded'> {
+  const s = useAppStore.getState()
+  const md = buildFitnessReport({ foodLogs: s.foodLogs, activityLogs: s.activityLogs, weightLogs: s.weightLogs, profile: s.profile, days })
+  if (mode === 'copy') {
+    try {
+      await navigator.clipboard.writeText(md)
+      return 'copied'
+    } catch {
+      // iOS/Safari có thể từ chối clipboard → rơi về tải file
+    }
+  }
+  download(`nomnam-bao-cao-${stamp()}.md`, md, 'text/markdown;charset=utf-8')
+  return 'downloaded'
 }
 
 /** Nhập file backup: gộp vào dữ liệu hiện có (bản mới hơn thắng), rồi đánh dấu cần đồng bộ. */
