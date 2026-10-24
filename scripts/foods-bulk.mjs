@@ -107,6 +107,8 @@ for (const e of entries) {
   const missing = found.filter((x) => x.missing).map((x) => x.missing)
   const src = found.filter((x) => !x.missing && Number.isFinite(x.kcal) && Number.isFinite(x.p) && Number.isFinite(x.f))
   if (missing.length) problems.push(`không tìm thấy nguồn: ${missing.join(' ; ')}`)
+  // manual: số tự tính từ công thức / ước tính (ghi chú nguồn trong manual.note) — tính như một nguồn "TT"
+  for (const m of e.manual ?? []) src.push({ src: 'TT', id: '', name: m.note, kcal: m.kcal, p: m.p, c: m.c, f: m.f, fib: m.fib })
   if (!src.length) {
     warn.push({ e, problems: [...problems, 'không có nguồn nào'] })
     continue
@@ -126,7 +128,8 @@ for (const e of entries) {
   if (!e.alcohol && atwOff) problems.push(`lệch Atwater: kcal ${kcal} vs ước ${Math.round(est)}`)
   if (spread > 0.35) problems.push(`nguồn lệch ${(spread * 100).toFixed(0)}% kcal`)
   const nIndep = src.length
-  const conf = nIndep >= 2 && spread <= 0.1 ? 'cao' : nIndep >= 2 && spread <= 0.25 ? 'trung bình' : nIndep >= 2 ? `thấp (nguồn lệch ${(spread * 100).toFixed(0)}%)` : 'thấp (1 nguồn)'
+  const allEst = src.every((s) => s.src === 'TT')
+  const conf = allEst ? 'thấp (chỉ ước tính)' : nIndep >= 2 && spread <= 0.1 ? 'cao' : nIndep >= 2 && spread <= 0.25 ? 'trung bình' : nIndep >= 2 ? `thấp (nguồn lệch ${(spread * 100).toFixed(0)}%)` : 'thấp (1 nguồn)'
   const rec = { e, kcal, p, c, f, fib, src, spread, conf, nIndep }
   if (problems.length && !e.force) warn.push({ e, problems, rec })
   else ok.push(rec)
@@ -150,7 +153,7 @@ ${lines.join('\n')}
 `
 
 // ── Sinh log nguồn ──────────────────────────────────────
-const srcCell = (s) => `${s.src === 'VN' ? 'Bảng VN' : s.src === 'MV' ? 'Matvaretabellen' : s.src === 'FD' ? 'USDA Foundation' : 'USDA SR'} ${s.id}: ${s.name.slice(0, 70)} (${Math.round(s.kcal)}/${r1(s.p)}/${r1(s.c ?? 0)}/${r1(s.f)})`
+const srcCell = (s) => `${s.src === 'TT' ? 'Tự tính / ước tính' : s.src === 'VN' ? 'Bảng VN' : s.src === 'MV' ? 'Matvaretabellen' : s.src === 'FD' ? 'USDA Foundation' : 'USDA SR'} ${s.id}: ${s.name.slice(0, 70)} (${Math.round(s.kcal)}/${r1(s.p)}/${r1(s.c ?? 0)}/${r1(s.f)})`
 const md = `# ${meta.title}
 
 Sinh tự động bởi \`scripts/foods-bulk.mjs\` (ngày ${new Date().toISOString().slice(0, 10)}). Số liệu trên 100g: kcal/P/C/F/xơ. ≥ 3 nguồn → trung vị, 2 nguồn → trung bình, 1 nguồn → độ tin cậy "thấp". Atwater đã kiểm bằng script (lệch ≤ 10%). Carb của Bảng VN và USDA đã gồm xơ.

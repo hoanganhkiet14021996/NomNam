@@ -5,6 +5,7 @@ import { PRODUCE_FOODS } from './foods/produce'
 import { VN_RICE_FOODS } from './foods/vn-rice'
 import { VN_NOODLE_FOODS } from './foods/vn-noodle'
 import { WEST_DRINK_FOODS } from './foods/west-drinks'
+import { REQUEST_FOODS } from './foods/requests'
 
 /**
  * Bảng món ăn mặc định. Giá trị tham khảo từ Bảng thành phần thực phẩm Việt Nam (Viện Dinh dưỡng)
@@ -301,7 +302,7 @@ const BASE: Food[] = [
 ]
 
 /** Bảng món đầy đủ: bảng gốc + các file theo nhóm (mỗi agent research ghi vào file nhóm riêng). */
-export const FOODS: Food[] = [...BASE, ...MEAT_FOODS, ...PRODUCE_FOODS, ...VN_RICE_FOODS, ...VN_NOODLE_FOODS, ...WEST_DRINK_FOODS]
+export const FOODS: Food[] = [...BASE, ...MEAT_FOODS, ...PRODUCE_FOODS, ...VN_RICE_FOODS, ...VN_NOODLE_FOODS, ...WEST_DRINK_FOODS, ...REQUEST_FOODS]
 
 export const CATEGORY_LABEL: Record<FoodCategory, string> = {
   carb: 'Tinh bột',
